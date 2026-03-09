@@ -18,7 +18,6 @@ public class EchiquierModele extends Observable {
 
     private void initialiserPieces() {
 
-        // Black pieces
         board[0][0] = new Rook("black");
         board[0][1] = new Knight("black");
         board[0][2] = new Bishop("black");
@@ -32,7 +31,6 @@ public class EchiquierModele extends Observable {
             board[1][col] = new Pawn("black");
         }
 
-        // White pieces
         board[7][0] = new Rook("white");
         board[7][1] = new Knight("white");
         board[7][2] = new Bishop("white");

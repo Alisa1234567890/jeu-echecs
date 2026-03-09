@@ -7,7 +7,6 @@ import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Arrays;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -21,6 +20,10 @@ public class VC extends JFrame implements Observer {
     private Point dragOffset;
     private AWTEventListener globalMouseListener;
 
+    // reuse components to avoid structural changes during repaint
+    private final JPanel[][] casePanels = new JPanel[8][8];
+    private final JLabel[][] caseLabels = new JLabel[8][8];
+
     public VC(Jeu jeu) {
         this.jeu = jeu;
         jeu.addObserver(this);
@@ -30,75 +33,16 @@ public class VC extends JFrame implements Observer {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         panel = new JPanel(new GridLayout(8, 8));
-        add(panel);
-
-        redraw();
-
-        globalMouseListener = evt -> {
-            if (!(evt instanceof java.awt.event.MouseEvent)) return;
-            MouseEvent me = (MouseEvent) evt;
-            if (me.getID() == MouseEvent.MOUSE_RELEASED) {
-                handleGlobalMouseReleased(me);
-            } else if (me.getID() == MouseEvent.MOUSE_DRAGGED) {
-                if (dragWindow != null && dragOffset != null) {
-                    int nx = me.getXOnScreen() - dragOffset.x;
-                    int ny = me.getYOnScreen() - dragOffset.y;
-                    dragWindow.setLocation(nx, ny);
-                }
-            }
-        };
-        Toolkit.getDefaultToolkit().addAWTEventListener(globalMouseListener,
-                AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
-    }
-
-
-    public JPanel getPanel() {
-        return panel;
-    }
-
-    private void redraw() {
-        panel.removeAll();
-
         for (int l = 0; l < 8; l++) {
             for (int c = 0; c < 8; c++) {
-
                 JPanel casePanel = new JPanel(new BorderLayout());
-                Color couleurOriginale =
-                        (l + c) % 2 == 0 ? Color.WHITE : Color.BLACK;
-                casePanel.setBackground(couleurOriginale);
+                casePanels[l][c] = casePanel;
+                JLabel label = new JLabel("", SwingConstants.CENTER);
+                caseLabels[l][c] = label;
+                casePanel.add(label, BorderLayout.CENTER);
 
-                int ligne = l;
-                int colonne = c;
-
-
-                Piece piece = jeu.getEchiquier().getPiece(ligne, colonne);
-                if (piece != null) {
-                    String imagePath = piece.getImageName();
-                    java.net.URL url = null;
-                    if (imagePath != null && !imagePath.isEmpty()) {
-                        String[] candidates = new String[] {
-                                "/" + imagePath,
-                                "/pieces/" + imagePath,
-                                "/Pieces/" + imagePath,
-                                imagePath
-                        };
-                        for (String pth : candidates) {
-                            url = getClass().getResource(pth);
-                            if (url != null) break;
-                        }
-                    }
-
-                    JLabel label;
-                    if (url != null) {
-                        label = new JLabel(new ImageIcon(url));
-                    } else {
-
-                        String initial = piece.getClass().getSimpleName();
-                        initial = initial.isEmpty() ? "?" : initial.substring(0, 1);
-                        label = new JLabel(initial, SwingConstants.CENTER);
-                    }
-                    casePanel.add(label);
-                }
+                final int ligne = l;
+                final int colonne = c;
 
                 casePanel.addMouseListener(new MouseAdapter() {
                     @Override
@@ -155,7 +99,6 @@ public class VC extends JFrame implements Observer {
                                     dragWindow = null;
                                     dragOffset = null;
                                 }
-
                             }
                         }
                     }
@@ -167,16 +110,8 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseExited(MouseEvent e) {
+                        Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? Color.WHITE : Color.BLACK;
                         casePanel.setBackground(couleurOriginale);
-                    }
-
-                    @Override
-                    public void mouseDragged(MouseEvent e) {
-                        if (dragWindow != null && dragOffset != null) {
-                            int nx = e.getXOnScreen() - dragOffset.x;
-                            int ny = e.getYOnScreen() - dragOffset.y;
-                            dragWindow.setLocation(nx, ny);
-                        }
                     }
                 });
 
@@ -192,6 +127,75 @@ public class VC extends JFrame implements Observer {
                 });
 
                 panel.add(casePanel);
+            }
+        }
+
+        add(panel);
+
+        redraw();
+
+        globalMouseListener = evt -> {
+            if (!(evt instanceof java.awt.event.MouseEvent)) return;
+            MouseEvent me = (MouseEvent) evt;
+            if (me.getID() == MouseEvent.MOUSE_RELEASED) {
+                handleGlobalMouseReleased(me);
+            } else if (me.getID() == MouseEvent.MOUSE_DRAGGED) {
+                if (dragWindow != null && dragOffset != null) {
+                    int nx = me.getXOnScreen() - dragOffset.x;
+                    int ny = me.getYOnScreen() - dragOffset.y;
+                    dragWindow.setLocation(nx, ny);
+                }
+            }
+        };
+        Toolkit.getDefaultToolkit().addAWTEventListener(globalMouseListener,
+                AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
+    }
+
+
+    public JPanel getPanel() {
+        return panel;
+    }
+
+    private void redraw() {
+        // Update existing components in-place to avoid structural changes
+        for (int l = 0; l < 8; l++) {
+            for (int c = 0; c < 8; c++) {
+                JPanel casePanel = casePanels[l][c];
+                JLabel label = caseLabels[l][c];
+
+                Color couleurOriginale = ((l + c) % 2 == 0) ? Color.WHITE : Color.BLACK;
+                casePanel.setBackground(couleurOriginale);
+
+                Piece piece = jeu.getEchiquier().getPiece(l, c);
+                if (piece != null) {
+                    String imagePath = piece.getImageName();
+                    java.net.URL url = null;
+                    if (imagePath != null && !imagePath.isEmpty()) {
+                        String[] candidates = new String[]{
+                                "/" + imagePath,
+                                "/pieces/" + imagePath,
+                                "/Pieces/" + imagePath,
+                                imagePath
+                        };
+                        for (String pth : candidates) {
+                            url = getClass().getResource(pth);
+                            if (url != null) break;
+                        }
+                    }
+
+                    if (url != null) {
+                        label.setIcon(new ImageIcon(url));
+                        label.setText("");
+                    } else {
+                        label.setIcon(null);
+                        String initial = piece.getClass().getSimpleName();
+                        initial = initial.isEmpty() ? "?" : initial.substring(0, 1);
+                        label.setText(initial);
+                    }
+                } else {
+                    label.setIcon(null);
+                    label.setText("");
+                }
             }
         }
 
@@ -236,11 +240,18 @@ public class VC extends JFrame implements Observer {
 
     private void cleanupDrag() {
         if (draggingPanel != null) {
-            try { draggingPanel.setBorder(null); } catch (Exception ignored) {}
+            try {
+                draggingPanel.setBorder(null);
+            } catch (Exception ignored) {
+            }
             draggingPanel = null;
         }
         if (dragWindow != null) {
-            try { dragWindow.setVisible(false); dragWindow.dispose(); } catch (Exception ignored) {}
+            try {
+                dragWindow.setVisible(false);
+                dragWindow.dispose();
+            } catch (Exception ignored) {
+            }
             dragWindow = null;
             dragOffset = null;
         }
@@ -255,7 +266,8 @@ public class VC extends JFrame implements Observer {
     public void dispose() {
         try {
             Toolkit.getDefaultToolkit().removeAWTEventListener(globalMouseListener);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         super.dispose();
     }
 }

@@ -1,9 +1,18 @@
 package org.model;
 
+import java.util.ArrayList;
+
 public class Rook extends Piece {
 
     public Rook(String color) {
         super(color);
+    }
+
+    @Override
+    public ArrayList<Case> getCaseAccessible() {
+        Plateau p = PlateauSingleton.INSTANCE;
+        DecorateurCasesEnLigne d = new DecorateurCasesEnLigne(p);
+        return d.getAccessibleCases(this);
     }
 
     @Override

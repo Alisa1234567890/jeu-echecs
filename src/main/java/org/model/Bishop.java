@@ -1,9 +1,18 @@
 package org.model;
 
+import java.util.ArrayList;
+
 public class Bishop extends Piece {
 
     public Bishop(String color) {
         super(color);
+    }
+
+    @Override
+    public ArrayList<Case> getCaseAccessible() {
+        Plateau p = PlateauSingleton.INSTANCE;
+        DecorateurCasesEnDiagonale d = new DecorateurCasesEnDiagonale(p);
+        return d.getAccessibleCases(this);
     }
 
     @Override
