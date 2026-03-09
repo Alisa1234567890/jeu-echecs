@@ -19,8 +19,13 @@ public class Jeu extends Observable implements Runnable {
         // initialize plateau singleton and some pieces for demonstration
         Plateau p = PlateauSingleton.INSTANCE;
         // place two pieces as example
-        Roi r = new Roi(true);
-        Dame d = new Dame(false);
+        // Roi r = new Roi(true);
+        // Dame d = new Dame(false);
+        // p.getCase(4, 0).setPiece(r);
+        // p.getCase(3, 7).setPiece(d);
+        // use renamed English classes King/Queen
+        King r = new King("white");
+        Queen d = new Queen("black");
         p.getCase(4, 0).setPiece(r);
         p.getCase(3, 7).setPiece(d);
     }

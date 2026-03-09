@@ -46,12 +46,30 @@ public class VC extends JFrame implements Observer {
                 // Display piece
                 Piece piece = jeu.getEchiquier().getPiece(ligne, colonne);
                 if (piece != null) {
-                    ImageIcon icon = new ImageIcon(
-                            getClass().getResource(
-                                    "/pieces/" + piece.getImageName()
-                            )
-                    );
-                    JLabel label = new JLabel(icon);
+                    String imagePath = piece.getImageName();
+                    java.net.URL url = null;
+                    if (imagePath != null && !imagePath.isEmpty()) {
+                        String[] candidates = new String[] {
+                                "/" + imagePath,
+                                "/pieces/" + imagePath,
+                                "/Pieces/" + imagePath,
+                                imagePath
+                        };
+                        for (String pth : candidates) {
+                            url = getClass().getResource(pth);
+                            if (url != null) break;
+                        }
+                    }
+
+                    JLabel label;
+                    if (url != null) {
+                        label = new JLabel(new ImageIcon(url));
+                    } else {
+                        // fallback: use piece initial if image not found
+                        String initial = piece.getClass().getSimpleName();
+                        initial = initial.isEmpty() ? "?" : initial.substring(0, 1);
+                        label = new JLabel(initial, SwingConstants.CENTER);
+                    }
                     casePanel.add(label);
                 }
 

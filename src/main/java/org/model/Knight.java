@@ -1,9 +1,16 @@
 package org.model;
 
+import java.util.ArrayList;
+
 public class Knight extends Piece {
 
     public Knight(String color) {
         super(color);
+    }
+
+    // compatibility: return empty accessible-cases list
+    public ArrayList<Case> getCaseAccessible() {
+        return new ArrayList<>();
     }
 
     @Override
@@ -19,6 +26,6 @@ public class Knight extends Piece {
 
     @Override
     public String getImageName() {
-        return color.equals("white") ? "Pieces/wN.png" : "Pieces/bN.png";
+        return getColor().equals("white") ? "Pieces/wN.png" : "Pieces/bN.png";
     }
 }

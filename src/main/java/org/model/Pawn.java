@@ -1,16 +1,23 @@
 package org.model;
 
+import java.util.ArrayList;
+
 public class Pawn extends Piece {
 
     public Pawn(String color) {
         super(color);
     }
 
+    // compatibility: return empty accessible-cases list
+    public ArrayList<Case> getCaseAccessible() {
+        return new ArrayList<>();
+    }
+
     @Override
     public boolean isValidMove(int startRow, int startCol,
                                int endRow, int endCol) {
 
-        int direction = color.equals("white") ? -1 : 1;
+        int direction = getColor().equals("white") ? -1 : 1;
 
         // Move forward one square
         if (startCol == endCol && endRow == startRow + direction) {
@@ -19,8 +26,8 @@ public class Pawn extends Piece {
 
         // First move: two squares
         if (startCol == endCol &&
-                ((color.equals("white") && startRow == 6 && endRow == 4) ||
-                        (color.equals("black") && startRow == 1 && endRow == 3))) {
+                ((getColor().equals("white") && startRow == 6 && endRow == 4) ||
+                        (getColor().equals("black") && startRow == 1 && endRow == 3))) {
             return true;
         }
 
@@ -29,6 +36,6 @@ public class Pawn extends Piece {
 
     @Override
     public String getImageName() {
-        return color.equals("white") ? "Pieces/wP.png" : "Pieces/bP.png";
+        return getColor().equals("white") ? "Pieces/wP.png" : "Pieces/bP.png";
     }
 }
