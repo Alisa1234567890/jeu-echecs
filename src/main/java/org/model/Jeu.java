@@ -13,9 +13,7 @@ public class Jeu extends Observable implements Runnable {
     public Jeu() {
         joueur1 = new Joueur(this);
         joueur2 = new Joueur(this);
-        // initialize plateau singleton and some pieces for demonstration
         Plateau p = PlateauSingleton.INSTANCE;
-        // place two pieces as example
         Roi r = new Roi(true);
         Dame d = new Dame(false);
         p.getCase(4, 0).setPiece(r);
@@ -46,10 +44,8 @@ public class Jeu extends Observable implements Runnable {
     public void appliquerCoup(Coup c) {
         synchronized (this) {
             nextC = c;
-            // try to move on plateau
             boolean ok = PlateauSingleton.INSTANCE.deplacer(c.dep, c.arr);
             if (!ok) {
-                // invalid move: could set flags or throw; for now just ignore
             }
             setChanged();
             notifyAll();

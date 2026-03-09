@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public abstract class Piece {
 
     protected Case position;
-    protected boolean blanc; // color
+    protected boolean blanc;
 
     public Piece(boolean blanc) {
         this.blanc = blanc;
@@ -23,6 +23,5 @@ public abstract class Piece {
         return blanc;
     }
 
-    // retourne les cases accessibles depuis la position actuelle
     public abstract ArrayList<Case> getCaseAccessible();
 }

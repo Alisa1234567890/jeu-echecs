@@ -28,11 +28,8 @@ public class Roi extends Piece {
         return res;
     }
 
-    // helper to find the plateau by walking up from position's classloader context (simple approach)
+
     private Plateau findPlateau() {
-        // There's no global plateau reference; try to find via known game structures in this project.
-        // For simplicity, assume position was created by a Plateau and has back-reference accessible via stored array.
-        // Here we can't access Plateau directly from Case, so we create a utility: Case positions are unique; assume a static singleton plateau is acceptable for now.
         return PlateauSingleton.INSTANCE;
     }
 }
