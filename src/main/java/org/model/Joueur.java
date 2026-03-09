@@ -1,21 +1,13 @@
 package org.model;
 
-public class Joueur {
+public abstract class Joueur {
 
-    private final Jeu jeu;
+    protected final Jeu jeu;
 
     public Joueur(Jeu jeu) {
         this.jeu = jeu;
     }
 
-    public Coup getCoup() {
-        synchronized (jeu) {
-            try {
-                jeu.wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return jeu.nextC;
-        }
-    }
+    // doit être implémentée par JHumain et JIA
+    public abstract Coup getCoup();
 }

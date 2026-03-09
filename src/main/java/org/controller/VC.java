@@ -149,7 +149,8 @@ public class VC extends JFrame implements Observer {
                         // keep existing behavior for releases that happen on a case panel
                         synchronized (jeu) {
                             if (depart != null) {
-                                jeu.nextC = new Coup(depart, new Point(ligne, colonne));
+                                // use Jeu API to set the coup rather than touching nextC directly
+                                jeu.setCoup(new Coup(depart, new Point(ligne, colonne)));
                                 depart = null;
 
                                 if (draggingPanel != null) {
@@ -164,7 +165,7 @@ public class VC extends JFrame implements Observer {
                                     dragOffset = null;
                                 }
 
-                                jeu.notify();
+                                // notification is handled by jeu.setCoup
                             }
                         }
                     }
@@ -238,10 +239,11 @@ public class VC extends JFrame implements Observer {
                 int col = Math.min(7, rx / cellW);
                 int row = Math.min(7, ry / cellH);
 
-                jeu.nextC = new Coup(new Point(depart.x, depart.y), new Point(row, col));
+                // use Jeu API instead of direct field mutation
+                jeu.setCoup(new Coup(new Point(depart.x, depart.y), new Point(row, col)));
                 depart = null;
                 cleanupDrag();
-                jeu.notify();
+                // jeu.setCoup already notifies
             } catch (IllegalComponentStateException ex) {
                 // if component not showing or location cannot be determined, cancel gracefully
                 cleanupDrag();
@@ -264,7 +266,8 @@ public class VC extends JFrame implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-        redraw();
+        // Ensure UI updates happen on the Swing EDT to avoid concurrent modification of components
+        SwingUtilities.invokeLater(this::redraw);
     }
 
     @Override

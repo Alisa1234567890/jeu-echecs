@@ -14,8 +14,8 @@ public class Jeu extends Observable implements Runnable {
 
     public Jeu() {
         echiquier = new EchiquierModele();
-        joueur1 = new Joueur(this);
-        joueur2 = new Joueur(this);
+        joueur1 = new JHumain(this);
+        joueur2 = new JHumain(this);
         // synchronize PlateauSingleton with echiquier initial board
         Plateau p = PlateauSingleton.INSTANCE;
         for (int r = 0; r < 8; r++) {
@@ -24,6 +24,8 @@ public class Jeu extends Observable implements Runnable {
                 p.getCase(r, c).setPiece(piece);
             }
         }
+        // démarrer le thread de jeu automatiquement
+        new Thread(this, "Jeu-Thread").start();
     }
 
     public EchiquierModele getEchiquier() {
@@ -39,7 +41,9 @@ public class Jeu extends Observable implements Runnable {
         while (!partieTerminee()) {
             Joueur js = getJoueurSuivant();
             Coup c = js.getCoup();
-            appliquerCoup(c);
+            if (c != null) {
+                appliquerCoup(c);
+            }
         }
     }
 
@@ -52,6 +56,7 @@ public class Jeu extends Observable implements Runnable {
     }
 
     public void appliquerCoup(Coup c) {
+        if (c == null) return;
         synchronized (this) {
             nextC = c;
             System.out.println("Attempting move: " + c.dep + " -> " + c.arr);
@@ -62,7 +67,18 @@ public class Jeu extends Observable implements Runnable {
                 echiquier.syncFromPlateau(PlateauSingleton.INSTANCE);
             }
             setChanged();
-            notifyAll();
+            this.notifyAll();
+            notifyObservers(c);
+        }
+    }
+
+    public void setCoup(Coup c) {
+        if (c == null) return;
+        synchronized (this) {
+            this.nextC = c;
+            // réveiller un joueur humain qui attend
+            this.notifyAll();
+            setChanged();
             notifyObservers(c);
         }
     }

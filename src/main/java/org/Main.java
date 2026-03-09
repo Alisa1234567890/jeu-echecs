@@ -14,6 +14,6 @@ public class Main {
         mf.setVC(vue);
         j.addObserver(vue);
         mf.setVisible(true);
-        new Thread(j).start();
+        // thread du jeu démarré automatiquement dans le constructeur de Jeu
     }
 }
