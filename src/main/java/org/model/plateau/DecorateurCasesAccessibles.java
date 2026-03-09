@@ -1,4 +1,6 @@
-package org.model;
+package org.model.plateau;
+
+import org.model.Piece;
 
 import java.util.ArrayList;
 

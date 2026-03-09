@@ -1,4 +1,4 @@
-package org.model;
+package org.model.plateau;
 
 
 public enum Direction {

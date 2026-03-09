@@ -1,5 +1,8 @@
 package org.model;
 
+import org.model.plateau.Case;
+import org.model.plateau.Plateau;
+
 import java.awt.Color;
 import java.util.Observable;
 

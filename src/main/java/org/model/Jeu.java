@@ -1,5 +1,8 @@
 package org.model;
 
+import org.model.plateau.Plateau;
+import org.model.plateau.PlateauSingleton;
+
 import java.util.Observable;
 
 public class Jeu extends Observable implements Runnable {

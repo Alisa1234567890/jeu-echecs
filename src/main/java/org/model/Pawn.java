@@ -1,5 +1,7 @@
 package org.model;
 
+import org.model.plateau.Case;
+
 import java.util.ArrayList;
 
 public class Pawn extends Piece {

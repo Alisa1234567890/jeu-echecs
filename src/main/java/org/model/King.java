@@ -1,5 +1,9 @@
 package org.model;
 
+import org.model.plateau.Case;
+import org.model.plateau.Plateau;
+import org.model.plateau.PlateauSingleton;
+
 import java.util.ArrayList;
 
 public class King extends Piece {
