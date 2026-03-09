@@ -56,11 +56,7 @@ public class EchiquierModele extends Observable {
 
     public void setPiece(int row, int col, Piece p) {
         board[row][col] = p;
-        // Do not create a new Case here; plateau owns Case instances.
-        // Piece positions are set when syncing from PlateauSingleton via syncFromPlateau.
-        if (p == null) {
-            // nothing to do
-        }
+        if (p != null) p.setCase(new Case(row, col));
         setChanged();
         notifyObservers();
     }

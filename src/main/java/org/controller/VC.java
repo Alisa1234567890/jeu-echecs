@@ -20,12 +20,10 @@ public class VC extends JFrame implements Observer {
     private JWindow dragWindow;
     private Point dragOffset;
     private AWTEventListener globalMouseListener;
-    private boolean[][] allowed;
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
         jeu.addObserver(this);
-        allowed = new boolean[8][8];
 
         setTitle("Jeu d'échecs");
         setSize(600, 600);
@@ -70,8 +68,7 @@ public class VC extends JFrame implements Observer {
                 JPanel casePanel = new JPanel(new BorderLayout());
                 Color couleurOriginale =
                         (l + c) % 2 == 0 ? Color.WHITE : Color.BLACK;
-                Color bg = allowed[l][c] ? Color.GREEN : couleurOriginale;
-                casePanel.setBackground(bg);
+                casePanel.setBackground(couleurOriginale);
 
                 int ligne = l;
                 int colonne = c;
@@ -115,30 +112,6 @@ public class VC extends JFrame implements Observer {
                             draggingPanel = casePanel;
                             casePanel.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 3));
 
-                            // compute allowed target squares for visual feedback
-                            for (int rr = 0; rr < 8; rr++) for (int cc = 0; cc < 8; cc++) allowed[rr][cc] = false;
-                            Piece p = jeu.getEchiquier().getPiece(ligne, colonne);
-                            if (p != null) {
-                                java.util.ArrayList<Case> acces = p.getCaseAccessible();
-                                if (acces != null && !acces.isEmpty()) {
-                                    for (Case ac : acces) {
-                                        allowed[ac.getX()][ac.getY()] = true;
-                                    }
-                                } else {
-                                    // fallback: check all squares with isValidMove
-                                    for (int rr = 0; rr < 8; rr++) {
-                                        for (int cc = 0; cc < 8; cc++) {
-                                            try {
-                                                if (p.isValidMove(ligne, colonne, rr, cc)) allowed[rr][cc] = true;
-                                            } catch (Exception ignored) {}
-                                        }
-                                    }
-                                }
-                                // force redraw so highlights appear
-                                panel.revalidate();
-                                panel.repaint();
-                            }
-
                             // create ghost image in a JWindow
                             Component comp = (casePanel.getComponentCount() > 0) ? casePanel.getComponent(0) : null;
                             JLabel source = (comp instanceof JLabel) ? (JLabel) comp : null;
@@ -176,17 +149,13 @@ public class VC extends JFrame implements Observer {
                         // keep existing behavior for releases that happen on a case panel
                         synchronized (jeu) {
                             if (depart != null) {
-                                Coup coup = new Coup(depart, new Point(ligne, colonne));
+                                jeu.nextC = new Coup(depart, new Point(ligne, colonne));
                                 depart = null;
 
                                 if (draggingPanel != null) {
                                     draggingPanel.setBorder(null);
                                     draggingPanel = null;
                                 }
-
-                                // clear allowed highlights
-                                for (int rr = 0; rr < 8; rr++) for (int cc = 0; cc < 8; cc++) allowed[rr][cc] = false;
-                                updateHighlights();
 
                                 if (dragWindow != null) {
                                     dragWindow.setVisible(false);
@@ -195,14 +164,7 @@ public class VC extends JFrame implements Observer {
                                     dragOffset = null;
                                 }
 
-                                // apply move through game logic immediately
-                                try {
-                                    jeu.appliquerCoup(coup);
-                                } catch (Exception ex) {
-                                    // in case appliquerCoup has threading expectations, fallback to setting nextC
-                                    jeu.nextC = coup;
-                                    jeu.notify();
-                                }
+                                jeu.notify();
                             }
                         }
                     }
@@ -214,8 +176,7 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseExited(MouseEvent e) {
-                        // restore original or allowed highlight
-                        casePanel.setBackground(allowed[ligne][colonne] ? Color.GREEN : couleurOriginale);
+                        casePanel.setBackground(couleurOriginale);
                     }
 
                     @Override
@@ -277,17 +238,10 @@ public class VC extends JFrame implements Observer {
                 int col = Math.min(7, rx / cellW);
                 int row = Math.min(7, ry / cellH);
 
-                Coup coup = new Coup(new Point(depart.x, depart.y), new Point(row, col));
+                jeu.nextC = new Coup(new Point(depart.x, depart.y), new Point(row, col));
                 depart = null;
                 cleanupDrag();
-                for (int rr = 0; rr < 8; rr++) for (int cc = 0; cc < 8; cc++) allowed[rr][cc] = false;
-                updateHighlights();
-                try {
-                    jeu.appliquerCoup(coup);
-                } catch (Exception ex) {
-                    jeu.nextC = coup;
-                    jeu.notify();
-                }
+                jeu.notify();
             } catch (IllegalComponentStateException ex) {
                 // if component not showing or location cannot be determined, cancel gracefully
                 cleanupDrag();
@@ -320,24 +274,5 @@ public class VC extends JFrame implements Observer {
             Toolkit.getDefaultToolkit().removeAWTEventListener(globalMouseListener);
         } catch (Exception ignored) {}
         super.dispose();
-    }
-
-    private void updateHighlights() {
-        if (panel == null) return;
-        Component[] comps = panel.getComponents();
-        if (comps == null) return;
-        int idx = 0;
-        for (int r = 0; r < 8; r++) {
-            for (int c = 0; c < 8; c++) {
-                if (idx >= comps.length) continue;
-                Component comp = comps[idx++];
-                if (!(comp instanceof JPanel)) continue;
-                JPanel cp = (JPanel) comp;
-                Color couleurOriginale = (r + c) % 2 == 0 ? Color.WHITE : Color.BLACK;
-                cp.setBackground(allowed[r][c] ? Color.GREEN : couleurOriginale);
-            }
-        }
-        panel.revalidate();
-        panel.repaint();
     }
 }
