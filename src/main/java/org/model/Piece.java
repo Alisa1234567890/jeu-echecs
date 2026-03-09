@@ -1,20 +1,28 @@
 package org.model;
 
+import java.util.ArrayList;
+
 public abstract class Piece {
-    protected String color; // "white" or "black"
 
-    public Piece(String color) {
-        this.color = color;
+    protected Case position;
+    protected boolean blanc; // color
+
+    public Piece(boolean blanc) {
+        this.blanc = blanc;
     }
 
-    public String getColor() {
-        return color;
+    public void setCase(Case c) {
+        this.position = c;
     }
 
-    // Each piece defines its own movement
-    public abstract boolean isValidMove(int startRow, int startCol,
-                                        int endRow, int endCol);
+    public Case getCase() {
+        return position;
+    }
 
-    // Each piece provides its image filename
-    public abstract String getImageName();
+    public boolean isBlanc() {
+        return blanc;
+    }
+
+    // retourne les cases accessibles depuis la position actuelle
+    public abstract ArrayList<Case> getCaseAccessible();
 }
