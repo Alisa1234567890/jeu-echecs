@@ -29,6 +29,11 @@ public class VC extends JFrame implements Observer {
         redraw();
     }
 
+    // expose the internal board panel so it can be embedded elsewhere
+    public JPanel getPanel() {
+        return panel;
+    }
+
     private void redraw() {
         panel.removeAll();
 
