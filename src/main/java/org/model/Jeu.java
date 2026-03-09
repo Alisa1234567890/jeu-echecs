@@ -16,18 +16,14 @@ public class Jeu extends Observable implements Runnable {
         echiquier = new EchiquierModele();
         joueur1 = new Joueur(this);
         joueur2 = new Joueur(this);
-        // initialize plateau singleton and some pieces for demonstration
+        // synchronize PlateauSingleton with echiquier initial board
         Plateau p = PlateauSingleton.INSTANCE;
-        // place two pieces as example
-        // Roi r = new Roi(true);
-        // Dame d = new Dame(false);
-        // p.getCase(4, 0).setPiece(r);
-        // p.getCase(3, 7).setPiece(d);
-        // use renamed English classes King/Queen
-        King r = new King("white");
-        Queen d = new Queen("black");
-        p.getCase(4, 0).setPiece(r);
-        p.getCase(3, 7).setPiece(d);
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                Piece piece = echiquier.getPiece(r, c);
+                p.getCase(r, c).setPiece(piece);
+            }
+        }
     }
 
     public EchiquierModele getEchiquier() {
@@ -58,10 +54,12 @@ public class Jeu extends Observable implements Runnable {
     public void appliquerCoup(Coup c) {
         synchronized (this) {
             nextC = c;
-            // try to move on plateau
+            System.out.println("Attempting move: " + c.dep + " -> " + c.arr);
             boolean ok = PlateauSingleton.INSTANCE.deplacer(c.dep, c.arr);
-            if (!ok) {
-                // invalid move: could set flags or throw; for now just ignore
+            System.out.println("Move result: " + ok);
+            if (ok) {
+                // reflect change in echiquier model as well
+                echiquier.syncFromPlateau(PlateauSingleton.INSTANCE);
             }
             setChanged();
             notifyAll();

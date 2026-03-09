@@ -8,7 +8,6 @@ public class Pawn extends Piece {
         super(color);
     }
 
-    // compatibility: return empty accessible-cases list
     public ArrayList<Case> getCaseAccessible() {
         return new ArrayList<>();
     }
@@ -19,12 +18,10 @@ public class Pawn extends Piece {
 
         int direction = getColor().equals("white") ? -1 : 1;
 
-        // Move forward one square
         if (startCol == endCol && endRow == startRow + direction) {
             return true;
         }
 
-        // First move: two squares
         if (startCol == endCol &&
                 ((getColor().equals("white") && startRow == 6 && endRow == 4) ||
                         (getColor().equals("black") && startRow == 1 && endRow == 3))) {

@@ -15,7 +15,6 @@ public class Queen extends Piece {
         int y = position.getY();
         Plateau plateau = findPlateau();
         if (plateau == null) return res;
-        // directions: 8 rays
         int[][] dirs = { {1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1} };
         for (int[] d : dirs) {
             int nx = x + d[0];

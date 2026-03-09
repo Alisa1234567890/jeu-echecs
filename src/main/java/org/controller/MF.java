@@ -37,7 +37,6 @@ public class MF extends JFrame implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-        // simple UI update when notified by Jeu
         SwingUtilities.invokeLater(() -> {
             String msg = "Update received" + (arg != null ? (": " + arg.toString()) : "");
             statusLabel.setText(msg);

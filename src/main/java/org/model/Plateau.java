@@ -31,7 +31,6 @@ public class Plateau {
         if (cDep == null || cArr == null) return false;
         if (cDep.isEmpty()) return false;
         Piece p = cDep.getPiece();
-        // naïf: allow move if arr is in accessible cases
         java.util.ArrayList<Case> acces = p.getCaseAccessible();
         boolean allowed = false;
         for (Case c : acces) {
@@ -40,8 +39,14 @@ public class Plateau {
                 break;
             }
         }
+        // fallback to simple isValidMove if getCaseAccessible wasn't implemented for this piece
+        if (!allowed) {
+            try {
+                allowed = p.isValidMove(dep.x, dep.y, arr.x, arr.y);
+            } catch (Exception ignored) {
+            }
+        }
         if (!allowed) return false;
-        // move
         cDep.setPiece(null);
         cArr.setPiece(p);
         return true;

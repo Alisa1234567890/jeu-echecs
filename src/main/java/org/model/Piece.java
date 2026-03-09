@@ -35,13 +35,10 @@ public class Piece {
         return color;
     }
 
-    // retourne les cases accessibles depuis la position actuelle
-    // default: empty list (subclasses that use board-rays should override)
     public ArrayList<Case> getCaseAccessible() {
         return new ArrayList<>();
     }
 
-    // compatibility methods used by other Piece subclasses in the project
     public boolean isValidMove(int startRow, int startCol,
                                int endRow, int endCol) {
         return false;

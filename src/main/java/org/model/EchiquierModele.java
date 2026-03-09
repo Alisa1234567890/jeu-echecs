@@ -54,6 +54,32 @@ public class EchiquierModele extends Observable {
         return board[row][col];
     }
 
+    public void setPiece(int row, int col, Piece p) {
+        board[row][col] = p;
+        // Do not create a new Case here; plateau owns Case instances.
+        // Piece positions are set when syncing from PlateauSingleton via syncFromPlateau.
+        if (p == null) {
+            // nothing to do
+        }
+        setChanged();
+        notifyObservers();
+    }
+
+    public void syncFromPlateau(Plateau plateau) {
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                Case plateauCase = plateau.getCase(r, c);
+                Piece p = (plateauCase == null) ? null : plateauCase.getPiece();
+                board[r][c] = p;
+                if (p != null && plateauCase != null) {
+                    p.setCase(plateauCase);
+                }
+            }
+        }
+        setChanged();
+        notifyObservers();
+    }
+
     public Color getCouleurCase(int ligne, int colonne) {
         return (ligne + colonne) % 2 == 0 ? couleurClair : couleurFonce;
     }

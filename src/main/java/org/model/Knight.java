@@ -8,7 +8,6 @@ public class Knight extends Piece {
         super(color);
     }
 
-    // compatibility: return empty accessible-cases list
     public ArrayList<Case> getCaseAccessible() {
         return new ArrayList<>();
     }
