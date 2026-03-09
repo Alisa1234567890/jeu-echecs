@@ -10,7 +10,10 @@ public class Jeu extends Observable implements Runnable {
     private Joueur joueur2;
     private boolean termine = false;
 
+    private EchiquierModele echiquier;
+
     public Jeu() {
+        echiquier = new EchiquierModele();
         joueur1 = new Joueur(this);
         joueur2 = new Joueur(this);
         // initialize plateau singleton and some pieces for demonstration
@@ -20,6 +23,10 @@ public class Jeu extends Observable implements Runnable {
         Dame d = new Dame(false);
         p.getCase(4, 0).setPiece(r);
         p.getCase(3, 7).setPiece(d);
+    }
+
+    public EchiquierModele getEchiquier() {
+        return echiquier;
     }
 
     @Override
