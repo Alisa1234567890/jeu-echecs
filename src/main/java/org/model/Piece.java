@@ -5,15 +5,14 @@ import java.util.ArrayList;
 public class Piece {
 
     protected Case position;
-    protected boolean blanc; // color flag
-    protected String color; // "white" or "black"
+    protected boolean blanc;
+    protected String color;
 
     public Piece(boolean blanc) {
         this.blanc = blanc;
         this.color = blanc ? "white" : "black";
     }
 
-    // compatibility constructor used throughout the project
     public Piece(String color) {
         this.color = color;
         this.blanc = "white".equalsIgnoreCase(color);

@@ -8,6 +8,5 @@ public abstract class Joueur {
         this.jeu = jeu;
     }
 
-    // doit être implémentée par JHumain et JIA
     public abstract Coup getCoup();
 }

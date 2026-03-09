@@ -8,7 +8,6 @@ public class JIA extends Joueur {
 
     @Override
     public Coup getCoup() {
-        // IA très basique: attend pas et renvoie null (aucun coup)
         return null;
     }
 }

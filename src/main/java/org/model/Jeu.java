@@ -16,7 +16,6 @@ public class Jeu extends Observable implements Runnable {
         echiquier = new EchiquierModele();
         joueur1 = new JHumain(this);
         joueur2 = new JHumain(this);
-        // synchronize PlateauSingleton with echiquier initial board
         Plateau p = PlateauSingleton.INSTANCE;
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
@@ -24,7 +23,6 @@ public class Jeu extends Observable implements Runnable {
                 p.getCase(r, c).setPiece(piece);
             }
         }
-        // démarrer le thread de jeu automatiquement
         new Thread(this, "Jeu-Thread").start();
     }
 
@@ -63,7 +61,6 @@ public class Jeu extends Observable implements Runnable {
             boolean ok = PlateauSingleton.INSTANCE.deplacer(c.dep, c.arr);
             System.out.println("Move result: " + ok);
             if (ok) {
-                // reflect change in echiquier model as well
                 echiquier.syncFromPlateau(PlateauSingleton.INSTANCE);
             }
             setChanged();
@@ -76,7 +73,6 @@ public class Jeu extends Observable implements Runnable {
         if (c == null) return;
         synchronized (this) {
             this.nextC = c;
-            // réveiller un joueur humain qui attend
             this.notifyAll();
             setChanged();
             notifyObservers(c);

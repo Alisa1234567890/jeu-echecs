@@ -39,7 +39,6 @@ public class Plateau {
                 break;
             }
         }
-        // fallback to simple isValidMove if getCaseAccessible wasn't implemented for this piece
         if (!allowed) {
             try {
                 allowed = p.isValidMove(dep.x, dep.y, arr.x, arr.y);

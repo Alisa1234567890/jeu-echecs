@@ -34,15 +34,12 @@ public class VC extends JFrame implements Observer {
 
         redraw();
 
-        // Register a global AWT listener so we catch mouse releases even when the cursor
-        // is outside the original case panel (the drag ghost may be in a JWindow).
         globalMouseListener = evt -> {
             if (!(evt instanceof java.awt.event.MouseEvent)) return;
             MouseEvent me = (MouseEvent) evt;
             if (me.getID() == MouseEvent.MOUSE_RELEASED) {
                 handleGlobalMouseReleased(me);
             } else if (me.getID() == MouseEvent.MOUSE_DRAGGED) {
-                // update ghost location while dragging anywhere
                 if (dragWindow != null && dragOffset != null) {
                     int nx = me.getXOnScreen() - dragOffset.x;
                     int ny = me.getYOnScreen() - dragOffset.y;
@@ -103,7 +100,6 @@ public class VC extends JFrame implements Observer {
                     casePanel.add(label);
                 }
 
-                // Mouse handling for drag-and-drop: press to start, drag to move ghost, release to finish
                 casePanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mousePressed(MouseEvent e) {
@@ -112,12 +108,9 @@ public class VC extends JFrame implements Observer {
                             draggingPanel = casePanel;
                             casePanel.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 3));
 
-                            // create ghost image in a JWindow
                             Component comp = (casePanel.getComponentCount() > 0) ? casePanel.getComponent(0) : null;
                             JLabel source = (comp instanceof JLabel) ? (JLabel) comp : null;
-                            // only start a drag if there is a visible piece (icon or text)
                             if (source == null || (source.getIcon() == null && (source.getText() == null || source.getText().isEmpty()))) {
-                                // nothing to drag
                                 depart = null;
                                 draggingPanel = null;
                                 return;
@@ -146,10 +139,8 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseReleased(MouseEvent e) {
-                        // keep existing behavior for releases that happen on a case panel
                         synchronized (jeu) {
                             if (depart != null) {
-                                // use Jeu API to set the coup rather than touching nextC directly
                                 jeu.setCoup(new Coup(depart, new Point(ligne, colonne)));
                                 depart = null;
 
@@ -165,7 +156,6 @@ public class VC extends JFrame implements Observer {
                                     dragOffset = null;
                                 }
 
-                                // notification is handled by jeu.setCoup
                             }
                         }
                     }
@@ -182,7 +172,6 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseDragged(MouseEvent e) {
-                        // Note: MouseAdapter does implement MouseMotionListener so this will be called
                         if (dragWindow != null && dragOffset != null) {
                             int nx = e.getXOnScreen() - dragOffset.x;
                             int ny = e.getYOnScreen() - dragOffset.y;
@@ -191,7 +180,6 @@ public class VC extends JFrame implements Observer {
                     }
                 });
 
-                // also add mouse motion listener so dragging over other components updates ghost
                 casePanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
                     @Override
                     public void mouseDragged(MouseEvent e) {
@@ -212,11 +200,9 @@ public class VC extends JFrame implements Observer {
     }
 
     private void handleGlobalMouseReleased(MouseEvent me) {
-        // capture global release and translate to a board cell, if appropriate
         synchronized (jeu) {
             if (depart == null) return;
             if (!panel.isShowing()) {
-                // panel not visible -> cancel drag
                 cleanupDrag();
                 depart = null;
                 return;
@@ -228,7 +214,6 @@ public class VC extends JFrame implements Observer {
                 int ry = me.getYOnScreen() - panelOnScreen.y;
 
                 if (rx < 0 || ry < 0 || rx >= panel.getWidth() || ry >= panel.getHeight()) {
-                    // released outside board -> cancel drag
                     cleanupDrag();
                     depart = null;
                     return;
@@ -239,13 +224,10 @@ public class VC extends JFrame implements Observer {
                 int col = Math.min(7, rx / cellW);
                 int row = Math.min(7, ry / cellH);
 
-                // use Jeu API instead of direct field mutation
                 jeu.setCoup(new Coup(new Point(depart.x, depart.y), new Point(row, col)));
                 depart = null;
                 cleanupDrag();
-                // jeu.setCoup already notifies
             } catch (IllegalComponentStateException ex) {
-                // if component not showing or location cannot be determined, cancel gracefully
                 cleanupDrag();
                 depart = null;
             }
@@ -266,13 +248,11 @@ public class VC extends JFrame implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-        // Ensure UI updates happen on the Swing EDT to avoid concurrent modification of components
         SwingUtilities.invokeLater(this::redraw);
     }
 
     @Override
     public void dispose() {
-        // remove global listener to avoid leaking
         try {
             Toolkit.getDefaultToolkit().removeAWTEventListener(globalMouseListener);
         } catch (Exception ignored) {}
