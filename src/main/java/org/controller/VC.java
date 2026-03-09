@@ -13,6 +13,7 @@ public class VC extends JFrame implements Observer {
 
     private final Jeu jeu;
     private Point depart;
+    private JPanel panel;
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
@@ -22,17 +23,37 @@ public class VC extends JFrame implements Observer {
         setSize(600, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JPanel panel = new JPanel(new GridLayout(8, 8));
+        panel = new JPanel(new GridLayout(8, 8));
+        add(panel);
+
+        redraw();
+    }
+
+    private void redraw() {
+        panel.removeAll();
 
         for (int l = 0; l < 8; l++) {
             for (int c = 0; c < 8; c++) {
 
-                JPanel casePanel = new JPanel();
-                Color couleurOriginale = (l + c) % 2 == 0 ? Color.WHITE : Color.BLACK;
+                JPanel casePanel = new JPanel(new BorderLayout());
+                Color couleurOriginale =
+                        (l + c) % 2 == 0 ? Color.WHITE : Color.BLACK;
                 casePanel.setBackground(couleurOriginale);
 
                 int ligne = l;
                 int colonne = c;
+
+                // Display piece
+                Piece piece = jeu.getEchiquier().getPiece(ligne, colonne);
+                if (piece != null) {
+                    ImageIcon icon = new ImageIcon(
+                            getClass().getResource(
+                                    "/pieces/" + piece.getImageName()
+                            )
+                    );
+                    JLabel label = new JLabel(icon);
+                    casePanel.add(label);
+                }
 
                 casePanel.addMouseListener(new MouseAdapter() {
 
@@ -52,7 +73,10 @@ public class VC extends JFrame implements Observer {
                             if (depart == null) {
                                 depart = new Point(ligne, colonne);
                             } else {
-                                jeu.nextC = new Coup(depart, new Point(ligne, colonne));
+                                jeu.nextC = new Coup(
+                                        depart,
+                                        new Point(ligne, colonne)
+                                );
                                 depart = null;
                                 jeu.notify();
                             }
@@ -64,12 +88,12 @@ public class VC extends JFrame implements Observer {
             }
         }
 
-
-        add(panel);
+        panel.revalidate();
+        panel.repaint();
     }
 
     @Override
     public void update(Observable o, Object arg) {
+        redraw();
     }
 }
-

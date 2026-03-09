@@ -10,9 +10,16 @@ public class Jeu extends Observable implements Runnable {
     private Joueur joueur2;
     private boolean termine = false;
 
+    private EchiquierModele echiquier;
+
     public Jeu() {
+        echiquier = new EchiquierModele();
         joueur1 = new Joueur(this);
         joueur2 = new Joueur(this);
+    }
+
+    public EchiquierModele getEchiquier() {
+        return echiquier;
     }
 
     @Override
