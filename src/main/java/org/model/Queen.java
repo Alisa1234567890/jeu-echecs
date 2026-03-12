@@ -3,13 +3,16 @@ package org.model;
 import org.model.plateau.Case;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
+import org.model.plateau.DecorateurCasesEnLigne;
+import org.model.plateau.DecorateurCasesEnDiagonale;
 
 import java.util.ArrayList;
 
 public class Queen extends Piece {
 
     public Queen(String color) {
-        super(color);
+        super(color, new DecorateurCasesEnLigne(PlateauSingleton.INSTANCE,
+                new DecorateurCasesEnDiagonale(PlateauSingleton.INSTANCE)));
     }
 
     public ArrayList<Case> getCaseAccessible() {

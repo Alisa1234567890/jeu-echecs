@@ -10,6 +10,10 @@ public class DecorateurCasesEnDiagonale extends DecorateurCasesAccessibles {
         super(plateau);
     }
 
+    public DecorateurCasesEnDiagonale(Plateau plateau, DecorateurCasesAccessibles base) {
+        super(plateau, base);
+    }
+
     @Override
     protected ArrayList<Case> getMesCasesAccessibles(Piece piece) {
         ArrayList<Case> res = new ArrayList<>();

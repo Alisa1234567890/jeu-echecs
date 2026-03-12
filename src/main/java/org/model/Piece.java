@@ -1,6 +1,7 @@
 package org.model;
 
 import org.model.plateau.Case;
+import org.model.plateau.DecorateurCasesAccessibles;
 
 import java.util.ArrayList;
 
@@ -9,15 +10,26 @@ public class Piece {
     protected Case position;
     protected boolean blanc;
     protected String color;
+    protected DecorateurCasesAccessibles decor;
 
     public Piece(boolean blanc) {
+        this(blanc, null);
+    }
+
+    public Piece(boolean blanc, DecorateurCasesAccessibles decor) {
         this.blanc = blanc;
         this.color = blanc ? "white" : "black";
+        this.decor = decor;
     }
 
     public Piece(String color) {
+        this(color, null);
+    }
+
+    public Piece(String color, DecorateurCasesAccessibles decor) {
         this.color = color;
         this.blanc = "white".equalsIgnoreCase(color);
+        this.decor = decor;
     }
 
     public void setCase(Case c) {
@@ -37,6 +49,9 @@ public class Piece {
     }
 
     public ArrayList<Case> getCaseAccessible() {
+        if (decor != null) {
+            return decor.getAccessibleCases(this);
+        }
         return new ArrayList<>();
     }
 
