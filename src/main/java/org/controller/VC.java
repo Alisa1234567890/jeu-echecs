@@ -181,32 +181,29 @@ public class VC extends JFrame implements Observer {
                 if (piece != null) {
                     String imagePath = piece.getImageName();
                     String resourcePath = null;
-                    java.net.URL url = null;
 
                     if (imagePath != null && !imagePath.isEmpty()) {
-                        // build candidates from base name and several extensions/prefixes
-                        String base = imagePath;
-                        int dot = base.lastIndexOf('.');
-                        String withoutExt = (dot > 0) ? base.substring(0, dot) : base;
-                        // prefer raster formats first, then svg
-                        String[] exts = new String[]{".png", ".jpeg", ".jpg", ".svg", ""};
-                        String[] prefixes = new String[]{"/", "/Pieces/", "/pieces/", ""};
+                        // Try to find the resource with different extensions
+                        // imagePath should be like "wP", "bR", etc.
+                        String[] exts = new String[]{".svg", ".png", ".jpeg", ".jpg"};
 
-                        outer:
-                        for (String pref : prefixes) {
+                        for (String ext : exts) {
+                            String candidate = "/Pieces/" + imagePath + ext;
+                            java.net.URL url = getClass().getResource(candidate);
+                            if (url != null) {
+                                resourcePath = candidate;
+                                break;
+                            }
+                        }
+
+                        // Fallback: try without leading slash
+                        if (resourcePath == null) {
                             for (String ext : exts) {
-                                String cand = pref + withoutExt + ext;
-                                url = getClass().getResource(cand);
+                                String candidate = "Pieces/" + imagePath + ext;
+                                java.net.URL url = getClass().getResource(candidate);
                                 if (url != null) {
-                                    resourcePath = cand;
-                                    break outer;
-                                }
-                                // also try cand using the original full imagePath (in case imagePath already had directory)
-                                cand = pref + base;
-                                url = getClass().getResource(cand);
-                                if (url != null) {
-                                    resourcePath = cand;
-                                    break outer;
+                                    resourcePath = candidate;
+                                    break;
                                 }
                             }
                         }
@@ -241,13 +238,18 @@ public class VC extends JFrame implements Observer {
                                 System.out.println("VC: loaded SVG resource=" + resourcePath + " for piece=" + piece.getClass().getSimpleName());
                                 return new ImageIcon(bi);
                             }
+                        } else {
+                            System.out.println("VC: SVG resource not found via InputStream: " + resourcePath);
                         }
                     } catch (Exception ex) {
-                        // fallback below
+                        System.out.println("VC: Error loading SVG " + resourcePath + ": " + ex.getMessage());
+                        ex.printStackTrace();
                     }
                 }
 
+                // Try to load as raster format
                 java.net.URL url = getClass().getResource(resourcePath);
+
                 if (url != null) {
                     ImageIcon ii = new ImageIcon(url);
                     if (ii.getIconWidth() > 0 && ii.getIconHeight() > 0) {

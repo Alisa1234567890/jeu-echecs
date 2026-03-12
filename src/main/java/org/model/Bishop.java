@@ -30,6 +30,6 @@ public class Bishop extends Piece {
 
     @Override
     public String getImageName() {
-        return color.equals("white") ? "Pieces/wB.jpeg" : "Pieces/bB.jpeg";
+        return color.equals("white") ? "wB" : "bB";
     }
 }

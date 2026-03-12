@@ -12,18 +12,30 @@ public class SvgToPngConverter {
      * Returns null if Batik is not available or conversion fails.
      */
     public static BufferedImage loadSvgAsImage(InputStream svgStream, float width, float height) {
-        if (svgStream == null) return null;
         try {
             // Load classes via reflection
             Class<?> transcoderClass = Class.forName("org.apache.batik.transcoder.image.ImageTranscoder");
             Class<?> transcoderInputClass = Class.forName("org.apache.batik.transcoder.TranscoderInput");
             Class<?> transcoderOutputClass = Class.forName("org.apache.batik.transcoder.TranscoderOutput");
+            Class<?> transcoderExceptionClass = Class.forName("org.apache.batik.transcoder.TranscoderException");
 
-            // Use Batik's PNGTranscoder
-            Class<?> pngTranscoderClass = Class.forName("org.apache.batik.transcoder.image.PNGTranscoder");
-            Object transcoder = pngTranscoderClass.getDeclaredConstructor().newInstance();
+            // Create an anonymous subclass of ImageTranscoder via runtime proxy isn't trivial; instead use Batik's PNGTranscoder if available
+            Class<?> pngTranscoderClass = null;
+            try {
+                pngTranscoderClass = Class.forName("org.apache.batik.transcoder.image.PNGTranscoder");
+            } catch (ClassNotFoundException ex) {
+                System.err.println("SvgToPngConverter: PNGTranscoder not found: " + ex.getMessage());
+            }
 
-            // set hints for width/height if available
+            Object transcoder;
+            if (pngTranscoderClass != null) {
+                transcoder = pngTranscoderClass.getDeclaredConstructor().newInstance();
+            } else {
+                System.err.println("SvgToPngConverter: Cannot create transcoder - PNGTranscoder class not available");
+                return null;
+            }
+
+            // set hints for width/height
             try {
                 Class<?> imageTranscoderClass = Class.forName("org.apache.batik.transcoder.image.ImageTranscoder");
                 java.lang.reflect.Field keyWidth = imageTranscoderClass.getField("KEY_WIDTH");
@@ -31,16 +43,19 @@ public class SvgToPngConverter {
                 Object K_WIDTH = keyWidth.get(null);
                 Object K_HEIGHT = keyHeight.get(null);
                 Method addHint = transcoder.getClass().getMethod("addTranscodingHint", Object.class, Object.class);
-                if (width > 0) addHint.invoke(transcoder, K_WIDTH, width);
-                if (height > 0) addHint.invoke(transcoder, K_HEIGHT, height);
-            } catch (NoSuchFieldException nsf) {
-                // ignore if keys not available
+                if (width > 0) addHint.invoke(transcoder, K_WIDTH, (int)width);
+                if (height > 0) addHint.invoke(transcoder, K_HEIGHT, (int)height);
+                System.out.println("SvgToPngConverter: Set width/height hints to " + (int)width + "x" + (int)height);
+            } catch (Exception nsf) {
+                System.err.println("SvgToPngConverter: Warning - could not set width/height hints: " + nsf.getMessage());
             }
 
             // prepare TranscoderInput from InputStream
             Constructor<?> inputCtor = transcoderInputClass.getConstructor(InputStream.class);
             Object input = inputCtor.newInstance(svgStream);
 
+            // use a ByteArrayOutputStream via TranscoderOutput to capture image bytes, but we want a BufferedImage directly.
+            // Simpler approach: use PNGTranscoder to write to a java.io.ByteArrayOutputStream and read back as BufferedImage via ImageIO
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             Constructor<?> outputCtor = transcoderOutputClass.getConstructor(java.io.OutputStream.class);
             Object output = outputCtor.newInstance(baos);
@@ -49,22 +64,27 @@ public class SvgToPngConverter {
             transcodeMethod.invoke(transcoder, input, output);
 
             byte[] pngBytes = baos.toByteArray();
+            if (pngBytes.length == 0) {
+                System.err.println("SvgToPngConverter: Transcoding produced empty output");
+                return null;
+            }
             java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(pngBytes);
-            BufferedImage img = javax.imageio.ImageIO.read(bais);
-            try { bais.close(); } catch (Exception ignored) {}
-            try { baos.close(); } catch (Exception ignored) {}
-            return img;
+            BufferedImage result = javax.imageio.ImageIO.read(bais);
+            if (result != null) {
+                System.out.println("SvgToPngConverter: Successfully converted SVG to BufferedImage (" + result.getWidth() + "x" + result.getHeight() + ")");
+            }
+            return result;
 
         } catch (ClassNotFoundException e) {
-            System.err.println("SvgToPngConverter: Batik not found on classpath: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("SvgToPngConverter: Batik not available - ClassNotFoundException: " + e.getMessage());
             return null;
         } catch (Exception e) {
-            System.err.println("SvgToPngConverter: conversion failed: " + e.getMessage());
+            System.err.println("SvgToPngConverter: Error converting SVG: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             e.printStackTrace();
             return null;
-        } finally {
-            try { svgStream.close(); } catch (Exception ignored) {}
         }
     }
 }
+
+
+
