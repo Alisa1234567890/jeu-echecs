@@ -11,7 +11,7 @@ public class DecorateurCasesEnDiagonale extends DecorateurCasesAccessibles {
     }
 
     @Override
-    public ArrayList<Case> getAccessibleCases(Piece piece) {
+    protected ArrayList<Case> getMesCasesAccessibles(Piece piece) {
         ArrayList<Case> res = new ArrayList<>();
         if (piece.getCase() == null) return res;
         int x = piece.getCase().getX();

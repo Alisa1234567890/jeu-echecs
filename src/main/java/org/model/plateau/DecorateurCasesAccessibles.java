@@ -8,12 +8,36 @@ import java.util.ArrayList;
 public abstract class DecorateurCasesAccessibles {
 
     protected final Plateau plateau;
+    protected final DecorateurCasesAccessibles base;
 
     public DecorateurCasesAccessibles(Plateau plateau) {
-        this.plateau = plateau;
+        this(plateau, null);
     }
 
-    public abstract ArrayList<Case> getAccessibleCases(Piece piece);
+    public DecorateurCasesAccessibles(Plateau plateau, DecorateurCasesAccessibles base) {
+        this.plateau = plateau;
+        this.base = base;
+    }
+
+    /**
+     * Public entry: combine this decorator's cases with base decorator (if any).
+     */
+    public ArrayList<Case> getAccessibleCases(Piece piece) {
+        ArrayList<Case> res = getMesCasesAccessibles(piece);
+        if (res == null) res = new ArrayList<>();
+        if (base != null) {
+            ArrayList<Case> baseList = base.getAccessibleCases(piece);
+            if (baseList != null && !baseList.isEmpty()) {
+                res.addAll(baseList);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Implemented by concrete decorators: return the cases this decorator contributes.
+     */
+    protected abstract ArrayList<Case> getMesCasesAccessibles(Piece piece);
 
     protected ArrayList<Case> collectRay(int startX, int startY, int dx, int dy, Piece piece) {
         ArrayList<Case> res = new ArrayList<>();
