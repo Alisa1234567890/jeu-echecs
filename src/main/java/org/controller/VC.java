@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -158,6 +159,12 @@ public class VC extends JFrame implements Observer {
 
     private void redraw() {
         // Update existing components in-place to avoid structural changes
+        int panelW = Math.max(1, panel.getWidth());
+        int panelH = Math.max(1, panel.getHeight());
+        int cellW = Math.max(1, panelW / 8);
+        int cellH = Math.max(1, panelH / 8);
+        int iconSize = Math.max(32, Math.min(cellW, cellH));
+
         for (int l = 0; l < 8; l++) {
             for (int c = 0; c < 8; c++) {
                 JPanel casePanel = casePanels[l][c];
@@ -183,15 +190,9 @@ public class VC extends JFrame implements Observer {
                         }
                     }
 
-                    if (url != null) {
-                        label.setIcon(new ImageIcon(url));
-                        label.setText("");
-                    } else {
-                        label.setIcon(null);
-                        String initial = piece.getClass().getSimpleName();
-                        initial = initial.isEmpty() ? "?" : initial.substring(0, 1);
-                        label.setText(initial);
-                    }
+                    Icon icon = createSafeIcon(piece, url, iconSize);
+                    label.setIcon(icon);
+                    label.setText("");
                 } else {
                     label.setIcon(null);
                     label.setText("");
@@ -201,6 +202,44 @@ public class VC extends JFrame implements Observer {
 
         panel.revalidate();
         panel.repaint();
+    }
+
+    private Icon createSafeIcon(Piece piece, java.net.URL url, int size) {
+        if (url != null) {
+            try {
+                ImageIcon ii = new ImageIcon(url);
+                if (ii.getIconWidth() > 0 && ii.getIconHeight() > 0) {
+                    Image img = ii.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                    return new ImageIcon(img);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        // Fallback: generate an icon with piece initial
+        String initial = piece.getClass().getSimpleName();
+        initial = (initial == null || initial.isEmpty()) ? "?" : initial.substring(0, 1).toUpperCase();
+        BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = bi.createGraphics();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            // background
+            g.setColor(new Color(0,0,0,0));
+            g.fillRect(0,0,size,size);
+            // circle
+            if (piece.isBlanc()) g.setColor(new Color(255,255,255,230)); else g.setColor(new Color(60,60,60,230));
+            g.fillOval(2,2,size-4,size-4);
+            // letter
+            g.setColor(piece.isBlanc() ? Color.BLACK : Color.WHITE);
+            Font font = new Font("SansSerif", Font.BOLD, Math.max(12, size/2));
+            g.setFont(font);
+            FontMetrics fm = g.getFontMetrics();
+            int tx = (size - fm.stringWidth(initial)) / 2;
+            int ty = (size - fm.getHeight()) / 2 + fm.getAscent();
+            g.drawString(initial, tx, ty);
+        } finally {
+            g.dispose();
+        }
+        return new ImageIcon(bi);
     }
 
     private void handleGlobalMouseReleased(MouseEvent me) {
@@ -271,3 +310,4 @@ public class VC extends JFrame implements Observer {
         super.dispose();
     }
 }
+

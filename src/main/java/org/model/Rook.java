@@ -28,6 +28,6 @@ public class Rook extends Piece {
 
     @Override
     public String getImageName() {
-        return color.equals("white") ? "Pieces/wR.png" : "Pieces/bR.png";
+        return color.equals("white") ? "Pieces/wR.jpeg" : "Pieces/bR.jpeg";
     }
 }

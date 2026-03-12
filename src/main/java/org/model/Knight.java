@@ -27,6 +27,6 @@ public class Knight extends Piece {
 
     @Override
     public String getImageName() {
-        return getColor().equals("white") ? "Pieces/wN.png" : "Pieces/bN.png";
+        return getColor().equals("white") ? "Pieces/wN.jpeg" : "Pieces/bN.jpeg";
     }
 }

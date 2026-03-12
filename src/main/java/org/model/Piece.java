@@ -45,7 +45,24 @@ public class Piece {
         return false;
     }
 
+    /**
+     * Default image name for a piece. Uses naming convention "Pieces/{w|b}{Code}.jpeg"
+     * where Code: P=Pawn, R=Rook, N=Knight, B=Bishop, Q=Queen, K=King
+     */
     public String getImageName() {
-        return "";
+        String cls = this.getClass().getSimpleName();
+        String code = "?";
+        switch (cls) {
+            case "Pawn": code = "P"; break;
+            case "Rook": code = "R"; break;
+            case "Knight": code = "N"; break;
+            case "Bishop": code = "B"; break;
+            case "Queen": code = "Q"; break;
+            case "King": code = "K"; break;
+            default: code = "?"; break;
+        }
+        String prefix = isBlanc() ? "w" : "b";
+        if ("?".equals(code)) return "";
+        return "Pieces/" + prefix + code + ".jpeg";
     }
 }

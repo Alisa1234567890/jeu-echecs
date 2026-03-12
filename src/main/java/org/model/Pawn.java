@@ -35,6 +35,6 @@ public class Pawn extends Piece {
 
     @Override
     public String getImageName() {
-        return getColor().equals("white") ? "Pieces/wP.png" : "Pieces/bP.png";
+        return getColor().equals("white") ? "Pieces/wP.jpeg" : "Pieces/bP.jpeg";
     }
 }
