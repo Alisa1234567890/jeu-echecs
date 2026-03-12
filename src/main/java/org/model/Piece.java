@@ -61,7 +61,7 @@ public class Piece {
     }
 
     /**
-     * Default image name for a piece. Uses naming convention "Pieces/{w|b}{Code}.jpeg"
+     * Default image name for a piece. Uses naming convention "Pieces/{w|b}{Code}.svg"
      * where Code: P=Pawn, R=Rook, N=Knight, B=Bishop, Q=Queen, K=King
      */
     public String getImageName() {
@@ -78,6 +78,6 @@ public class Piece {
         }
         String prefix = isBlanc() ? "w" : "b";
         if ("?".equals(code)) return "";
-        return "Pieces/" + prefix + code + ".jpeg";
+        return "resources/Pieces/" + prefix + code + ".svg";
     }
 }

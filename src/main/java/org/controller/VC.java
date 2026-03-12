@@ -1,6 +1,7 @@
 package org.controller;
 
 import org.model.*;
+import org.tools.SvgToPngConverter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,6 +9,9 @@ import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -176,21 +180,42 @@ public class VC extends JFrame implements Observer {
                 Piece piece = jeu.getEchiquier().getPiece(l, c);
                 if (piece != null) {
                     String imagePath = piece.getImageName();
+                    String resourcePath = null;
                     java.net.URL url = null;
+
                     if (imagePath != null && !imagePath.isEmpty()) {
-                        String[] candidates = new String[]{
-                                "/" + imagePath,
-                                "/pieces/" + imagePath,
-                                "/Pieces/" + imagePath,
-                                imagePath
-                        };
-                        for (String pth : candidates) {
-                            url = getClass().getResource(pth);
-                            if (url != null) break;
+                        // build candidates from base name and several extensions/prefixes
+                        String base = imagePath;
+                        int dot = base.lastIndexOf('.');
+                        String withoutExt = (dot > 0) ? base.substring(0, dot) : base;
+                        // prefer raster formats first, then svg
+                        String[] exts = new String[]{".png", ".jpeg", ".jpg", ".svg", ""};
+                        String[] prefixes = new String[]{"/", "/Pieces/", "/pieces/", ""};
+
+                        outer:
+                        for (String pref : prefixes) {
+                            for (String ext : exts) {
+                                String cand = pref + withoutExt + ext;
+                                url = getClass().getResource(cand);
+                                if (url != null) {
+                                    resourcePath = cand;
+                                    break outer;
+                                }
+                                // also try cand using the original full imagePath (in case imagePath already had directory)
+                                cand = pref + base;
+                                url = getClass().getResource(cand);
+                                if (url != null) {
+                                    resourcePath = cand;
+                                    break outer;
+                                }
+                            }
                         }
                     }
 
-                    Icon icon = createSafeIcon(piece, url, iconSize);
+                    // Debug log: which resource path was chosen for this piece
+                    System.out.println("VC: piece at (" + l + "," + c + ") type=" + piece.getClass().getSimpleName() + " -> resourcePath=" + resourcePath);
+
+                    Icon icon = createSafeIcon(piece, resourcePath, iconSize);
                     label.setIcon(icon);
                     label.setText("");
                 } else {
@@ -204,18 +229,39 @@ public class VC extends JFrame implements Observer {
         panel.repaint();
     }
 
-    private Icon createSafeIcon(Piece piece, java.net.URL url, int size) {
-        if (url != null) {
+    private Icon createSafeIcon(Piece piece, String resourcePath, int size) {
+        if (resourcePath != null) {
             try {
-                ImageIcon ii = new ImageIcon(url);
-                if (ii.getIconWidth() > 0 && ii.getIconHeight() > 0) {
-                    Image img = ii.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
-                    return new ImageIcon(img);
+                String lower = resourcePath.toLowerCase();
+                if (lower.endsWith(".svg")) {
+                    try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+                        if (is != null) {
+                            BufferedImage bi = SvgToPngConverter.loadSvgAsImage(is, size, size);
+                            if (bi != null) {
+                                System.out.println("VC: loaded SVG resource=" + resourcePath + " for piece=" + piece.getClass().getSimpleName());
+                                return new ImageIcon(bi);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        // fallback below
+                    }
+                }
+
+                java.net.URL url = getClass().getResource(resourcePath);
+                if (url != null) {
+                    ImageIcon ii = new ImageIcon(url);
+                    if (ii.getIconWidth() > 0 && ii.getIconHeight() > 0) {
+                        System.out.println("VC: loaded raster resource=" + resourcePath + " for piece=" + piece.getClass().getSimpleName());
+                        Image img = ii.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                        return new ImageIcon(img);
+                    }
                 }
             } catch (Exception ignored) {
             }
         }
+
         // Fallback: generate an icon with piece initial
+        System.out.println("VC: fallback icon for piece=" + piece.getClass().getSimpleName() + " resource=" + resourcePath);
         String initial = piece.getClass().getSimpleName();
         initial = (initial == null || initial.isEmpty()) ? "?" : initial.substring(0, 1).toUpperCase();
         BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
@@ -310,4 +356,3 @@ public class VC extends JFrame implements Observer {
         super.dispose();
     }
 }
-
