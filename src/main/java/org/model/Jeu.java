@@ -81,22 +81,29 @@ public class Jeu extends Observable implements Runnable {
             }
 
             Piece captured = plateau.getCase(c.arr).getPiece();
-            Piece capturedEnPassant = null;  // Pour stocker le pion capturé en passant
+            Piece capturedEnPassant = null;
+            boolean isEnPassant = false;
 
             // 0. Déterminer si c'est une prise en passant AVANT de déplacer
-            if (piece instanceof Pawn && captured == null && c.dep.x != c.arr.x && c.dep.y != c.arr.y) {
-                // C'est une capture en diagonale sans pièce = prise en passant
+            if (piece instanceof Pawn && captured == null
+                    && c.dep.y != c.arr.y && c.dep.x != c.arr.x) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
                 Piece pawnCaptured = plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).getPiece();
-                if (pawnCaptured instanceof Pawn) {
+                if (pawnCaptured instanceof Pawn && pawnCaptured.isBlanc() != piece.isBlanc()) {
+                    isEnPassant = true;
                     capturedEnPassant = pawnCaptured;
-                    System.out.println("En passant capture detected!");
+                    // CRUCIAL : placer temporairement le pion ennemi sur c.arr
+                    // pour que plateau.deplacer() accepte le mouvement diagonal
+                    plateau.getCase(c.arr).setPiece(capturedEnPassant);
+                    System.out.println("En passant detected, placing temp piece");
                 }
             }
 
             // 1. Vérifier que le mouvement est légal
             boolean ok = plateau.deplacer(c.dep, c.arr);
             if (!ok) {
+                // Annuler le placement temporaire si besoin
+                if (isEnPassant) plateau.getCase(c.arr).setPiece(null);
                 System.out.println("Move result: illegal move");
                 echiquier.syncFromPlateau(plateau);
                 setChanged();
@@ -104,8 +111,8 @@ public class Jeu extends Observable implements Runnable {
                 return;
             }
 
-            // 2. Appliquer la prise en passant si détectée
-            if (capturedEnPassant != null) {
+            // 2. Retirer le vrai pion capturé en passant (sa case d'origine, pas c.arr)
+            if (isEnPassant) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
                 plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(null);
                 System.out.println("En passant capture executed!");
@@ -117,13 +124,10 @@ public class Jeu extends Observable implements Runnable {
                 int colorIndex = piece.isBlanc() ? 0 : 1;
                 roiBouge[colorIndex] = true;
 
-                // Déterminer si c'est un roque (déplacement roi de 2 cases)
                 if (Math.abs(c.arr.y - c.dep.y) == 2) {
                     isCastling = true;
                     System.out.println("Castling detected!");
-                    // Déplacer la tour
                     if (c.arr.y > c.dep.y) {
-                        // Roque côté roi (kingside)
                         Piece rook = plateau.getCase(c.arr.x, 7).getPiece();
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 7).setPiece(null);
@@ -131,7 +135,6 @@ public class Jeu extends Observable implements Runnable {
                             System.out.println("Kingside castling executed");
                         }
                     } else {
-                        // Roque côté dame (queenside)
                         Piece rook = plateau.getCase(c.arr.x, 0).getPiece();
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 0).setPiece(null);
@@ -142,18 +145,17 @@ public class Jeu extends Observable implements Runnable {
                 }
             }
 
-            // 4. Marquer les tours comme déplacées pour empêcher le roque futur
+            // 4. Marquer les tours comme déplacées
             if (piece instanceof Rook) {
                 int colorIndex = piece.isBlanc() ? 0 : 1;
                 roqueDisponible[colorIndex] = false;
             }
 
-            // 5. Gérer la promotion du pion (APRÈS roque)
+            // 5. Promotion du pion
             Piece promotedPiece = piece;
             if (piece instanceof Pawn && !isCastling) {
                 int endRow = c.arr.x;
                 if ((piece.isBlanc() && endRow == 0) || (!piece.isBlanc() && endRow == 7)) {
-                    // Promouvoir le pion en Dame (promotion par défaut)
                     Piece newQueen = new Queen(piece.getColor());
                     plateau.getCase(c.arr).setPiece(newQueen);
                     promotedPiece = newQueen;
@@ -165,36 +167,31 @@ public class Jeu extends Observable implements Runnable {
             echiquier.syncFromPlateau(plateau);
             dernierCoup = c;
 
-            // 7. Vérifier que le joueur n'est pas en échec après le coup
+            // 7. Vérifier échec après le coup
             if (joueurCourant.estEnEchec()) {
-                // Annuler le coup - le joueur ne peut pas se mettre en échec
                 System.out.println("Move would leave king in check - INVALID");
 
-                // Restaurer le plateau
                 plateau.deplacer(c.arr, c.dep);
 
-                // Restaurer la pièce capturée
                 if (captured != null) {
                     plateau.getCase(c.arr).setPiece(captured);
                 }
 
-                // Restaurer le pion en passant s'il y en a un
-                if (capturedEnPassant != null) {
+                // Restaurer le pion capturé en passant ET vider c.arr
+                if (isEnPassant) {
                     int dirEnPassant = piece.isBlanc() ? 1 : -1;
                     plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(capturedEnPassant);
+                    plateau.getCase(c.arr).setPiece(null); // c.arr doit être vide
                 }
 
-                // Restaurer la tour en roque
                 if (isCastling && piece instanceof King) {
                     if (c.arr.y > c.dep.y) {
-                        // Kingside: restaurer tour de f1 à h1
                         Piece rook = plateau.getCase(c.arr.x, 5).getPiece();
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 5).setPiece(null);
                             plateau.getCase(c.arr.x, 7).setPiece(rook);
                         }
                     } else {
-                        // Queenside: restaurer tour de d1 à a1
                         Piece rook = plateau.getCase(c.arr.x, 3).getPiece();
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 3).setPiece(null);
