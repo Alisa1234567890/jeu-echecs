@@ -26,7 +26,6 @@ public class VC extends JFrame implements Observer {
     private Color BEIGE = new Color(240, 217, 181);
     private Color MARRON = new Color(181, 136, 99);
 
-    // reuse components to avoid structural changes during repaint
     private final JPanel[][] casePanels = new JPanel[8][8];
     private final JLabel[][] caseLabels = new JLabel[8][8];
 
@@ -35,10 +34,13 @@ public class VC extends JFrame implements Observer {
         jeu.addObserver(this);
 
         setTitle("Jeu d'échecs");
-        setSize(600, 600);
+        setSize(650, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        panel = new JPanel(new GridLayout(8, 8));
+        panel = new JPanel(new BorderLayout());
+
+        JPanel chessBoard = new JPanel(new GridLayout(8, 8));
+
         for (int l = 0; l < 8; l++) {
             for (int c = 0; c < 8; c++) {
                 JPanel casePanel = new JPanel(new BorderLayout());
@@ -93,12 +95,10 @@ public class VC extends JFrame implements Observer {
                             if (depart != null) {
                                 jeu.setCoup(new Coup(depart, new Point(ligne, colonne)));
                                 depart = null;
-
                                 if (draggingPanel != null) {
                                     draggingPanel.setBorder(null);
                                     draggingPanel = null;
                                 }
-
                                 if (dragWindow != null) {
                                     dragWindow.setVisible(false);
                                     dragWindow.dispose();
@@ -132,9 +132,32 @@ public class VC extends JFrame implements Observer {
                     }
                 });
 
-                panel.add(casePanel);
+                chessBoard.add(casePanel);
             }
         }
+
+        JPanel rowPanel = new JPanel(new GridLayout(8, 1));
+        for (int i = 8; i >= 1; i--) {
+            JLabel lbl = new JLabel(" " + i + " ", SwingConstants.CENTER);
+            lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+            rowPanel.add(lbl);
+        }
+
+        JPanel colPanel = new JPanel(new GridLayout(1, 8));
+        for (char c = 'a'; c <= 'h'; c++) {
+            JLabel lbl = new JLabel(String.valueOf(c), SwingConstants.CENTER);
+            lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+            colPanel.add(lbl);
+        }
+
+        JPanel southContainer = new JPanel(new BorderLayout());
+        JLabel spacer = new JLabel("   ");
+        southContainer.add(spacer, BorderLayout.WEST);
+        southContainer.add(colPanel, BorderLayout.CENTER);
+
+        panel.add(rowPanel, BorderLayout.WEST);
+        panel.add(chessBoard, BorderLayout.CENTER);
+        panel.add(southContainer, BorderLayout.SOUTH);
 
         add(panel);
 
@@ -156,7 +179,6 @@ public class VC extends JFrame implements Observer {
         Toolkit.getDefaultToolkit().addAWTEventListener(globalMouseListener,
                 AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
     }
-
 
     public JPanel getPanel() {
         return panel;
@@ -183,8 +205,6 @@ public class VC extends JFrame implements Observer {
                     String resourcePath = null;
 
                     if (imagePath != null && !imagePath.isEmpty()) {
-                        // Try to find the resource with different extensions
-                        // imagePath should be like "wP", "bR", etc.
                         String[] exts = new String[]{".svg", ".png", ".jpeg", ".jpg"};
 
                         for (String ext : exts) {
@@ -196,7 +216,6 @@ public class VC extends JFrame implements Observer {
                             }
                         }
 
-                        // Fallback: try without leading slash
                         if (resourcePath == null) {
                             for (String ext : exts) {
                                 String candidate = "Pieces/" + imagePath + ext;
@@ -209,7 +228,6 @@ public class VC extends JFrame implements Observer {
                         }
                     }
 
-                    // Debug log: which resource path was chosen for this piece
                     System.out.println("VC: piece at (" + l + "," + c + ") type=" + piece.getClass().getSimpleName() + " -> resourcePath=" + resourcePath);
 
                     Icon icon = createSafeIcon(piece, resourcePath, iconSize);
