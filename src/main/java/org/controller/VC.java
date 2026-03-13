@@ -24,6 +24,8 @@ public class VC extends JFrame implements Observer {
     private JWindow dragWindow;
     private Point dragOffset;
     private AWTEventListener globalMouseListener;
+    private Color BEIGE = new Color(240, 217, 181);
+    private Color MARRON = new Color(181, 136, 99);
 
     // reuse components to avoid structural changes during repaint
     private final JPanel[][] casePanels = new JPanel[8][8];
@@ -115,7 +117,7 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseExited(MouseEvent e) {
-                        Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? Color.WHITE : Color.BLACK;
+                        Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? BEIGE: MARRON;
                         casePanel.setBackground(couleurOriginale);
                     }
                 });
@@ -174,7 +176,7 @@ public class VC extends JFrame implements Observer {
                 JPanel casePanel = casePanels[l][c];
                 JLabel label = caseLabels[l][c];
 
-                Color couleurOriginale = ((l + c) % 2 == 0) ? Color.WHITE : Color.BLACK;
+                Color couleurOriginale = ((l + c) % 2 == 0) ? BEIGE : MARRON;
                 casePanel.setBackground(couleurOriginale);
 
                 Piece piece = jeu.getEchiquier().getPiece(l, c);
@@ -277,7 +279,7 @@ public class VC extends JFrame implements Observer {
             if (piece.isBlanc()) g.setColor(new Color(255,255,255,230)); else g.setColor(new Color(60,60,60,230));
             g.fillOval(2,2,size-4,size-4);
             // letter
-            g.setColor(piece.isBlanc() ? Color.BLACK : Color.WHITE);
+            g.setColor(piece.isBlanc() ? MARRON: BEIGE);
             Font font = new Font("SansSerif", Font.BOLD, Math.max(12, size/2));
             g.setFont(font);
             FontMetrics fm = g.getFontMetrics();
