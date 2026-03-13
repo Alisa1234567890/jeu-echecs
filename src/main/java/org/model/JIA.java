@@ -10,4 +10,10 @@ public class JIA extends Joueur {
     public Coup getCoup() {
         return null;
     }
+
+    @Override
+    public boolean isBlanc() {
+        // Implémentation spécifique pour JIA
+        return false; // Exemple : retourne false pour les pièces noires
+    }
 }

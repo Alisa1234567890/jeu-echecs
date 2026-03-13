@@ -17,4 +17,10 @@ public class JHumain extends Joueur {
             return jeu.nextC;
         }
     }
+
+    @Override
+    public boolean isBlanc() {
+        // Implémentation spécifique pour JHumain
+        return true; // Exemple : retourne true pour les pièces blanches
+    }
 }

@@ -1,8 +1,11 @@
 package org.model.plateau;
 
 import org.model.piece.*;
+import org.model.Joueur;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Observable;
 
 public class EchiquierModele extends Observable {
@@ -82,5 +85,40 @@ public class EchiquierModele extends Observable {
 
     public Color getCouleurSurvol() {
         return couleurSurvol;
+    }
+
+    /**
+     * Récupère le roi d'un joueur.
+     * @param joueur Le joueur dont on veut récupérer le roi.
+     * @return La pièce représentant le roi, ou null si introuvable.
+     */
+    public Piece getRoi(Joueur joueur) {
+        for (int row = 0; row < board.length; row++) {
+            for (int col = 0; col < board[row].length; col++) {
+                Piece piece = board[row][col];
+                if (piece instanceof King && piece.isBlanc() == joueur.isBlanc()) {
+                    return piece;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Récupère les pièces adverses d'un joueur.
+     * @param joueur Le joueur dont on veut récupérer les pièces adverses.
+     * @return Une liste des pièces adverses.
+     */
+    public List<Piece> getPiecesAdverses(Joueur joueur) {
+        List<Piece> piecesAdverses = new ArrayList<>();
+        for (int row = 0; row < board.length; row++) {
+            for (int col = 0; col < board[row].length; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.isBlanc() != joueur.isBlanc()) {
+                    piecesAdverses.add(piece);
+                }
+            }
+        }
+        return piecesAdverses;
     }
 }

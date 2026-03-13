@@ -1,6 +1,8 @@
 package org.model.piece;
 
 import org.model.plateau.Case;
+import org.model.plateau.Plateau;
+import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
@@ -10,8 +12,31 @@ public class Knight extends Piece {
         super(color);
     }
 
+    @Override
     public ArrayList<Case> getCaseAccessible() {
-        return new ArrayList<>();
+        ArrayList<Case> res = new ArrayList<>();
+        if (position == null) return res;
+
+        int x = position.getX();
+        int y = position.getY();
+        Plateau plateau = PlateauSingleton.INSTANCE;
+
+        // Les 8 sauts possibles du cavalier
+        int[][] sauts = {
+                {-2, -1}, {-2, 1}, {2, -1}, {2, 1},
+                {-1, -2}, {-1, 2}, {1, -2}, {1, 2}
+        };
+
+        for (int[] s : sauts) {
+            Case c = plateau.getCase(x + s[0], y + s[1]);
+            if (c != null) {
+                // Case vide OU pièce ennemie
+                if (c.isEmpty() || c.getPiece().isBlanc() != this.isBlanc()) {
+                    res.add(c);
+                }
+            }
+        }
+        return res;
     }
 
     @Override
