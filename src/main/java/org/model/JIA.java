@@ -2,8 +2,11 @@ package org.model;
 
 public class JIA extends Joueur {
 
-    public JIA(Jeu jeu) {
+    private boolean blanc;
+
+    public JIA(Jeu jeu, boolean blanc) {
         super(jeu);
+        this.blanc = blanc;
     }
 
     @Override
@@ -13,7 +16,6 @@ public class JIA extends Joueur {
 
     @Override
     public boolean isBlanc() {
-        // Implémentation spécifique pour JIA
-        return false; // Exemple : retourne false pour les pièces noires
+        return blanc;
     }
 }

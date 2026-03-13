@@ -2,8 +2,11 @@ package org.model;
 
 public class JHumain extends Joueur {
 
-    public JHumain(Jeu jeu) {
+    private boolean blanc;
+
+    public JHumain(Jeu jeu, boolean blanc) {
         super(jeu);
+        this.blanc = blanc;
     }
 
     @Override
@@ -20,7 +23,6 @@ public class JHumain extends Joueur {
 
     @Override
     public boolean isBlanc() {
-        // Implémentation spécifique pour JHumain
-        return true; // Exemple : retourne true pour les pièces blanches
+        return blanc;
     }
 }
