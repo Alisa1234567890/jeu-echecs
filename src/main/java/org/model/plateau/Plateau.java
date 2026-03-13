@@ -1,6 +1,6 @@
 package org.model.plateau;
 
-import org.model.Piece;
+import org.model.piece.Piece;
 
 import java.awt.Point;
 

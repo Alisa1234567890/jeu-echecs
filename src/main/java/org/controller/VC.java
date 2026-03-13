@@ -1,6 +1,7 @@
 package org.controller;
 
 import org.model.*;
+import org.model.piece.Piece;
 import org.tools.SvgToPngConverter;
 
 import javax.swing.*;
@@ -10,8 +11,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -164,7 +163,6 @@ public class VC extends JFrame implements Observer {
     }
 
     private void redraw() {
-        // Update existing components in-place to avoid structural changes
         int panelW = Math.max(1, panel.getWidth());
         int panelH = Math.max(1, panel.getHeight());
         int cellW = Math.max(1, panelW / 8);
@@ -249,7 +247,6 @@ public class VC extends JFrame implements Observer {
                     }
                 }
 
-                // Try to load as raster format
                 java.net.URL url = getClass().getResource(resourcePath);
 
                 if (url != null) {
@@ -264,7 +261,6 @@ public class VC extends JFrame implements Observer {
             }
         }
 
-        // Fallback: generate an icon with piece initial
         System.out.println("VC: fallback icon for piece=" + piece.getClass().getSimpleName() + " resource=" + resourcePath);
         String initial = piece.getClass().getSimpleName();
         initial = (initial == null || initial.isEmpty()) ? "?" : initial.substring(0, 1).toUpperCase();
@@ -272,13 +268,10 @@ public class VC extends JFrame implements Observer {
         Graphics2D g = bi.createGraphics();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            // background
             g.setColor(new Color(0,0,0,0));
             g.fillRect(0,0,size,size);
-            // circle
             if (piece.isBlanc()) g.setColor(new Color(255,255,255,230)); else g.setColor(new Color(60,60,60,230));
             g.fillOval(2,2,size-4,size-4);
-            // letter
             g.setColor(piece.isBlanc() ? MARRON: BEIGE);
             Font font = new Font("SansSerif", Font.BOLD, Math.max(12, size/2));
             g.setFont(font);

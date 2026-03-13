@@ -1,6 +1,6 @@
 package org.model.plateau;
 
-import org.model.Piece;
+import org.model.piece.Piece;
 
 import java.util.ArrayList;
 
@@ -19,9 +19,6 @@ public abstract class DecorateurCasesAccessibles {
         this.base = base;
     }
 
-    /**
-     * Public entry: combine this decorator's cases with base decorator (if any).
-     */
     public ArrayList<Case> getAccessibleCases(Piece piece) {
         ArrayList<Case> res = getMesCasesAccessibles(piece);
         if (res == null) res = new ArrayList<>();
@@ -34,9 +31,6 @@ public abstract class DecorateurCasesAccessibles {
         return res;
     }
 
-    /**
-     * Implemented by concrete decorators: return the cases this decorator contributes.
-     */
     protected abstract ArrayList<Case> getMesCasesAccessibles(Piece piece);
 
     protected ArrayList<Case> collectRay(int startX, int startY, int dx, int dy, Piece piece) {

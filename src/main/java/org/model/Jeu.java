@@ -1,5 +1,7 @@
 package org.model;
 
+import org.model.piece.Piece;
+import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 

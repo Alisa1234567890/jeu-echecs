@@ -14,7 +14,6 @@ public enum Direction {
     public final int dy;
 
     Direction(int _dx, int _dy) {
-        // as requested: invert the signs of provided values
         this.dx = -_dx;
         this.dy = -_dy;
     }

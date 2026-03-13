@@ -1,7 +1,6 @@
-package org.model;
+package org.model.plateau;
 
-import org.model.plateau.Case;
-import org.model.plateau.Plateau;
+import org.model.piece.*;
 
 import java.awt.Color;
 import java.util.Observable;

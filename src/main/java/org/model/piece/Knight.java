@@ -1,4 +1,4 @@
-package org.model;
+package org.model.piece;
 
 import org.model.plateau.Case;
 

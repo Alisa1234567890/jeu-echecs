@@ -1,4 +1,4 @@
-package org.model;
+package org.model.piece;
 
 import org.model.plateau.Case;
 import org.model.plateau.DecorateurCasesAccessibles;
@@ -60,10 +60,7 @@ public class Piece {
         return false;
     }
 
-    /**
-     * Default image name for a piece. Uses naming convention "{w|b}{Code}"
-     * where Code: P=Pawn, R=Rook, N=Knight, B=Bishop, Q=Queen, K=King
-     */
+
     public String getImageName() {
         String cls = this.getClass().getSimpleName();
         String code = "?";
@@ -78,7 +75,6 @@ public class Piece {
         }
         String prefix = isBlanc() ? "w" : "b";
         if ("?".equals(code)) return "";
-        // Return base name without extension - VC will search for .png, .jpeg, .jpg, .svg
         return prefix + code;
     }
 }

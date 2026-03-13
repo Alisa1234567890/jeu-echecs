@@ -1,33 +1,35 @@
-package org.model;
+package org.model.piece;
 
 import org.model.plateau.Case;
-import org.model.plateau.DecorateurCasesEnLigne;
+import org.model.plateau.DecorateurCasesEnDiagonale;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class Rook extends Piece {
+public class Bishop extends Piece {
 
-    public Rook(String color) {
+    public Bishop(String color) {
         super(color);
     }
 
     @Override
     public ArrayList<Case> getCaseAccessible() {
         Plateau p = PlateauSingleton.INSTANCE;
-        DecorateurCasesEnLigne d = new DecorateurCasesEnLigne(p);
+        DecorateurCasesEnDiagonale d = new DecorateurCasesEnDiagonale(p);
         return d.getAccessibleCases(this);
     }
 
     @Override
     public boolean isValidMove(int startRow, int startCol,
                                int endRow, int endCol) {
-        return startRow == endRow || startCol == endCol;
+
+        return Math.abs(endRow - startRow) ==
+                Math.abs(endCol - startCol);
     }
 
     @Override
     public String getImageName() {
-        return color.equals("white") ? "wR" : "bR";
+        return color.equals("white") ? "wB" : "bB";
     }
 }
