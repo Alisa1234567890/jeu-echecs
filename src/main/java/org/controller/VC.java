@@ -183,6 +183,8 @@ public class VC extends JFrame implements Observer {
                     String resourcePath = null;
 
                     if (imagePath != null && !imagePath.isEmpty()) {
+                        // Try to find the resource with different extensions
+                        // imagePath should be like "wP", "bR", etc.
                         String[] exts = new String[]{".svg", ".png", ".jpeg", ".jpg"};
 
                         for (String ext : exts) {
@@ -194,6 +196,7 @@ public class VC extends JFrame implements Observer {
                             }
                         }
 
+                        // Fallback: try without leading slash
                         if (resourcePath == null) {
                             for (String ext : exts) {
                                 String candidate = "Pieces/" + imagePath + ext;
@@ -206,6 +209,7 @@ public class VC extends JFrame implements Observer {
                         }
                     }
 
+                    // Debug log: which resource path was chosen for this piece
                     System.out.println("VC: piece at (" + l + "," + c + ") type=" + piece.getClass().getSimpleName() + " -> resourcePath=" + resourcePath);
 
                     Icon icon = createSafeIcon(piece, resourcePath, iconSize);
