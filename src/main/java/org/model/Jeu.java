@@ -75,6 +75,7 @@ public class Jeu extends Observable implements Runnable {
 
             Plateau plateau = PlateauSingleton.INSTANCE;
             Piece piece = plateau.getCase(c.dep).getPiece();
+            Piece originalPiece = piece;
             if (piece == null) {
                 System.out.println("Move result: no piece at departure");
                 return;
@@ -172,6 +173,10 @@ public class Jeu extends Observable implements Runnable {
                 System.out.println("Move would leave king in check - INVALID");
 
                 plateau.deplacer(c.arr, c.dep);
+
+                if (promotedPiece != originalPiece) {
+                    plateau.getCase(c.dep).setPiece(originalPiece);
+                }
 
                 if (captured != null) {
                     plateau.getCase(c.arr).setPiece(captured);
