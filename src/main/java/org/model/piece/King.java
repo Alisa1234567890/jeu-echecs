@@ -21,7 +21,6 @@ public class King extends Piece {
         Plateau plateau = findPlateau();
         if (plateau == null) return res;
 
-        // 1. Déplacements standards (1 case autour)
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) continue;
@@ -32,17 +31,13 @@ public class King extends Piece {
             }
         }
 
-        // 2. AJOUT POUR LE ROQUE : Autoriser le saut de 2 cases
-        // On ajoute les destinations potentielles (colonnes 2 et 6)
-        // La validation réelle (échec, pièces entre deux) se fera dans Jeu.java
 
-        // Petit roque (vers la droite, colonne 6)
         Case petitRoque = plateau.getCase(x, 6);
         if (petitRoque != null && petitRoque.isEmpty()) {
             res.add(petitRoque);
         }
 
-        // Grand roque (vers la gauche, colonne 2)
+
         Case grandRoque = plateau.getCase(x, 2);
         if (grandRoque != null && grandRoque.isEmpty()) {
             res.add(grandRoque);

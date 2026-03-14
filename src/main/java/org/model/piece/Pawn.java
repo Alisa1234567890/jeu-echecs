@@ -21,15 +21,15 @@ public class Pawn extends Piece {
         int y = position.getY();
         Plateau plateau = PlateauSingleton.INSTANCE;
 
-        // Direction : -1 pour blanc (monte), 1 pour noir (descend)
+
         int dir = isBlanc() ? -1 : 1;
 
-        // 1. Avance d'une case
+
         Case devant = plateau.getCase(x + dir, y);
         if (devant != null && devant.isEmpty()) {
             res.add(devant);
 
-            // 2. Avance de deux cases (Premier coup)
+
             boolean estAuDepart = (isBlanc() && x == 6) || (!isBlanc() && x == 1);
             if (estAuDepart) {
                 Case devant2 = plateau.getCase(x + (2 * dir), y);
@@ -39,20 +39,19 @@ public class Pawn extends Piece {
             }
         }
 
-        // 3. Prises en diagonale
+
         int[] colonnesDiagonales = {y - 1, y + 1};
         for (int c : colonnesDiagonales) {
             Case diag = plateau.getCase(x + dir, c);
             if (diag != null && !diag.isEmpty()) {
-                // On vérifie que c'est une pièce ennemie
+
                 if (diag.getPiece().isBlanc() != this.isBlanc()) {
                     res.add(diag);
                 }
             }
         }
 
-        // Note : La promotion et la prise en passant devront être gérées
-        // au moment de l'exécution du mouvement dans la classe Jeu.
+
         return res;
     }
 

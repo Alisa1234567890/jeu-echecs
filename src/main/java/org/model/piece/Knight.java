@@ -21,7 +21,7 @@ public class Knight extends Piece {
         int y = position.getY();
         Plateau plateau = PlateauSingleton.INSTANCE;
 
-        // Les 8 sauts possibles du cavalier
+
         int[][] sauts = {
                 {-2, -1}, {-2, 1}, {2, -1}, {2, 1},
                 {-1, -2}, {-1, 2}, {1, -2}, {1, 2}
