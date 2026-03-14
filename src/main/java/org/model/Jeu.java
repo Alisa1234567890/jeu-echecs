@@ -54,29 +54,37 @@ public class Jeu extends Observable implements Runnable {
             
             // Vérifier les conditions de fin de partie
             if (estEchecEtMat(js)) {
-
-                System.out.println(" UPDATE RECEIVED: ÉCHEC ET MAT! ");
-
-                System.out.println( (js.isBlanc() ? "Noir" : "Blanc") + " a gagné la partie!  ");
+                String gagnant = js.isBlanc() ? "Noir" : "Blanc";
+                System.out.println("\n╔════════════════════════════════════════╗");
+                System.out.println("║   ✅ UPDATE RECEIVED: ÉCHEC ET MAT!    ║");
+                System.out.println("╠════════════════════════════════════════╣");
+                System.out.println("║   Gagnant: " + String.format("%-26s", gagnant) + "║");
+                System.out.println("║   Perdant: " + String.format("%-26s", (js.isBlanc() ? "Blanc" : "Noir")) + "║");
+                System.out.println("╚════════════════════════════════════════╝\n");
 
                 if (nextC != null) {
                     nextC.setType("ECHEC ET MAT"); // Marquer le dernier coup
                 }
                 termine = true;
                 setChanged();
-                notifyObservers("CHECKMATE");
+                notifyObservers("ÉCHEC ET MAT - Gagnant: " + gagnant);
                 break;
             }
             
             if (estPat(js)) {
-                System.out.println(" UPDATE RECEIVED: PAT!");
+                System.out.println("\n╔════════════════════════════════════════╗");
+                System.out.println("║      ✅ UPDATE RECEIVED: PAT!          ║");
+                System.out.println("╠════════════════════════════════════════╣");
+                System.out.println("║   Partie nulle (Match Nul)             ║");
+                System.out.println("║   Aucun joueur n'a gagné               ║");
+                System.out.println("╚════════════════════════════════════════╝\n");
 
                 if (nextC != null) {
                     nextC.setType("PAT"); // Marquer le dernier coup
                 }
                 termine = true;
                 setChanged();
-                notifyObservers("STALEMATE");
+                notifyObservers("PAT - Match Nul");
                 break;
             }
             
@@ -126,7 +134,7 @@ public class Jeu extends Observable implements Runnable {
                     // CRUCIAL : placer temporairement le pion ennemi sur c.arr
                     // pour que plateau.deplacer() accepte le mouvement diagonal
                     plateau.getCase(c.arr).setPiece(capturedEnPassant);
-                    System.out.println(" UPDATE RECEIVED: PRISE EN PASSANT");
+                    System.out.println("✅ UPDATE RECEIVED: PRISE EN PASSANT");
                 }
             }
 
@@ -135,7 +143,7 @@ public class Jeu extends Observable implements Runnable {
             if (!ok) {
                 // Annuler le placement temporaire si besoin
                 if (isEnPassant) plateau.getCase(c.arr).setPiece(null);
-                System.out.println("UPDATE RECEIVED: MOVE INVALID");
+                System.out.println("❌ UPDATE RECEIVED: MOVE INVALID");
                 System.out.println("    Mouvement illégal");
                 echiquier.syncFromPlateau(plateau);
                 setChanged();
@@ -159,7 +167,7 @@ public class Jeu extends Observable implements Runnable {
                 if (Math.abs(c.arr.y - c.dep.y) == 2) {
                     isCastling = true;
                     c.setType("ROQUE"); // Marquer le coup
-                    System.out.println(" UPDATE RECEIVED: ROQUE");
+                    System.out.println("✅ UPDATE RECEIVED: ROQUE");
                     if (c.arr.y > c.dep.y) {
                         Piece rook = plateau.getCase(c.arr.x, 7).getPiece();
                         if (rook instanceof Rook) {
@@ -192,7 +200,7 @@ public class Jeu extends Observable implements Runnable {
                     plateau.getCase(c.arr).setPiece(newQueen);
                     promotedPiece = newQueen;
                     c.setType("PROMOTION"); // Marquer le coup
-                    System.out.println("UPDATE RECEIVED: PROMOTION");
+                    System.out.println("✅ UPDATE RECEIVED: PROMOTION");
                     System.out.println("    Pion -> Reine");
                 }
             }
@@ -245,7 +253,7 @@ public class Jeu extends Observable implements Runnable {
                 return;
             }
 
-            System.out.println("UPDATE RECEIVED: MOVE ACCEPTED");
+            System.out.println("✅ UPDATE RECEIVED: MOVE ACCEPTED");
             System.out.println("    Coup valide");
             setChanged();
             this.notifyAll();
