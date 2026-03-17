@@ -96,20 +96,22 @@ public class VC extends JFrame implements Observer {
                                         org.model.piece.Piece last = plateau.getCase(dernier.arr).getPiece();
                                         if (last instanceof org.model.piece.Pawn && last.isBlanc() != piece.isBlanc()) {
                                             int dist = Math.abs(dernier.arr.x - dernier.dep.x);
-                                            if (dist == 2 && dernier.arr.x == ligne) {
-                                                int colAdverse = dernier.arr.y;
-                                                if (Math.abs(colAdverse - colonne) == 1) {
-                                                    int xPassant = ligne + dir;
-                                                    if (xPassant >= 0 && xPassant < 8) {
-                                                        org.model.plateau.Case cp = plateau.getCase(xPassant, colAdverse);
-                                                        if (cp != null) {
-                                                            if (!casesAccessibles.contains(cp)) {
-                                                                System.out.println("VC: en-passant candidate at (" + xPassant + "," + colAdverse + ") for pawn at (" + ligne + "," + colonne + ")");
-                                                                casesAccessibles.add(cp);
-                                                            }
-                                                        } else {
-                                                            System.out.println("VC: en-passant target case null at (" + xPassant + "," + colAdverse + ")");
+                                            System.out.println("VC: EN PASSANT CHECK for pawn(" + ligne + "," + colonne + "): dist=" + dist + ", sameRow=" + (dernier.arr.x == ligne) + ", adjCol=" + Math.abs(dernier.arr.y - colonne) + ", lastMove=(" + dernier.arr.x + "," + dernier.arr.y + ")");
+                                            // En passant: opponent pawn moved 2 squares and ended on same row as this pawn
+                                            if (dist == 2 && dernier.arr.x == ligne && Math.abs(dernier.arr.y - colonne) == 1) {
+                                                int xPassant = ligne + dir;
+                                                int yPassant = dernier.arr.y;
+                                                System.out.println("VC: EN PASSANT VALID CONDITION MET! Checking target (" + xPassant + "," + yPassant + ")");
+                                                if (xPassant >= 0 && xPassant < 8) {
+                                                    org.model.plateau.Case cp = plateau.getCase(xPassant, yPassant);
+                                                    if (cp != null) {
+                                                        System.out.println("VC: Target case exists, empty=" + cp.isEmpty());
+                                                        if (!casesAccessibles.contains(cp)) {
+                                                            System.out.println("VC: ADDED en-passant at (" + xPassant + "," + yPassant + ")");
+                                                            casesAccessibles.add(cp);
                                                         }
+                                                    } else {
+                                                        System.out.println("VC: Target case is NULL!");
                                                     }
                                                 }
                                             }
