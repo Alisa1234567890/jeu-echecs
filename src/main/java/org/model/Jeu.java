@@ -237,6 +237,13 @@ public class Jeu extends Observable implements Runnable {
                 return;
             }
 
+            // Vérifier si le prochain joueur est en échec (mais pas échec et mat ou pat)
+            Joueur joueurSuivant = (joueurCourant == joueur1) ? joueur2 : joueur1;
+            if (joueurSuivant.estEnEchec()) {
+                c.setType("ECHEC");
+                System.out.println("MISE A JOUR: ÉCHEC");
+            }
+
             System.out.println("MISE A JOUR: coup valide");
             setChanged();
             this.notifyAll();

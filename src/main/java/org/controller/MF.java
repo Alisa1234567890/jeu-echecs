@@ -38,7 +38,19 @@ public class MF extends JFrame implements Observer {
     @Override
     public void update(Observable o, Object arg) {
         SwingUtilities.invokeLater(() -> {
-            String msg = "Update received" + (arg != null ? (": " + arg.toString()) : "");
+            String msg = "Update received";
+            if (arg != null) {
+                String argStr = arg.toString();
+                if (argStr.contains("ÉCHEC ET MAT")) {
+                    msg = argStr ;
+                } else if (argStr.contains("PAT")) {
+                    msg = argStr ;
+                } else if (argStr.contains("ÉCHEC")) {
+                    msg = "ÉCHEC ! ";
+                } else {
+                    msg = argStr;
+                }
+            }
             statusLabel.setText(msg);
             repaint();
         });
