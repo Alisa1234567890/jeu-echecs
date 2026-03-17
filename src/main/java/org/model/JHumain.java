@@ -11,14 +11,7 @@ public class JHumain extends Joueur {
 
     @Override
     public Coup getCoup() {
-        synchronized (jeu) {
-            try {
-                jeu.wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return jeu.nextC;
-        }
+        return jeu.attendreCoup();
     }
 
     @Override

@@ -5,7 +5,6 @@ import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
-import java.awt.Point;
 import java.util.Observable;
 
 public class Jeu extends Observable implements Runnable {
@@ -18,16 +17,18 @@ public class Jeu extends Observable implements Runnable {
     private boolean termine = false;
 
     private EchiquierModele echiquier;
-    private Coup dernierCoup;  // Pour la prise en passant
-    private boolean[] roqueDisponible = new boolean[2];  // blanc, noir
-    private boolean[] roiBouge = new boolean[2];  // blanc, noir - pour déterminer si roque possible
+    private Coup dernierCoup;
+    private boolean[] roqueDisponible = new boolean[2];
+    private boolean[] roiBouge = new boolean[2];
+    // true uniquement quand le jeu est bloqué dans attendreCoup() - empêche de jouer 2x
+    private volatile boolean attenteCoup = false;
 
     public Jeu() {
         echiquier = new EchiquierModele();
         joueur1 = new JHumain(this, true);   // Joueur blanc
         joueur2 = new JHumain(this, false);  // Joueur noir
-        joueurCourant = joueur1;
-        roqueDisponible[0] = roqueDisponible[1] = true;  // Les deux peuvent roquer au départ
+        joueurCourant = joueur1;             // Blanc joue en premier
+        roqueDisponible[0] = roqueDisponible[1] = true;
         roiBouge[0] = roiBouge[1] = false;
         Plateau p = PlateauSingleton.INSTANCE;
         for (int r = 0; r < 8; r++) {
@@ -49,42 +50,38 @@ public class Jeu extends Observable implements Runnable {
     }
 
     public void jouerPartie() {
+        // joueurCourant = joueur1 (blanc) — blanc joue en premier
         while (!partieTerminee()) {
-            Joueur js = getJoueurSuivant();
-            
-            // Vérifier les conditions de fin de partie
-            if (estEchecEtMat(js)) {
-                String gagnant = js.isBlanc() ? "Noir" : "Blanc";
-                System.out.println("RÉSULTAT: ÉCHEC ET MAT!");
-                System.out.println("Gagnant: " + String.format("%-26s", gagnant));
-                System.out.println("Perdant: " + String.format("%-26s", (js.isBlanc() ? "Blanc" : "Noir")));
+            // Attendre le coup du joueur courant
+            Coup c = joueurCourant.getCoup();
+            if (c != null) {
+                appliquerCoup(c);
+            }
 
-                if (nextC != null) {
-                    nextC.setType("ECHEC ET MAT"); // Marquer le dernier coup
-                }
+            // Vérifier les conditions de fin pour le joueur SUIVANT
+            Joueur joueurSuivant = (joueurCourant == joueur1) ? joueur2 : joueur1;
+
+            if (estEchecEtMat(joueurSuivant)) {
+                String gagnant = joueurCourant.isBlanc() ? "Blanc" : "Noir";
+                System.out.println("RÉSULTAT: ÉCHEC ET MAT! Gagnant: " + gagnant);
+                if (nextC != null) nextC.setType("ECHEC ET MAT");
                 termine = true;
                 setChanged();
                 notifyObservers("ÉCHEC ET MAT - Gagnant: " + gagnant);
                 break;
             }
-            
-            if (estPat(js)) {
-                System.out.println("RÉSULTAT: PAT!");
-                System.out.println("Aucun joueur n'a gagné ");
 
-                if (nextC != null) {
-                    nextC.setType("PAT");
-                }
+            if (estPat(joueurSuivant)) {
+                System.out.println("RÉSULTAT: PAT!");
+                if (nextC != null) nextC.setType("PAT");
                 termine = true;
                 setChanged();
                 notifyObservers("PAT - Match Nul");
                 break;
             }
-            
-            Coup c = js.getCoup();
-            if (c != null) {
-                appliquerCoup(c);
-            }
+
+            // Passer au joueur suivant
+            joueurCourant = joueurSuivant;
         }
     }
 
@@ -92,9 +89,36 @@ public class Jeu extends Observable implements Runnable {
         return termine;
     }
 
-    public Joueur getJoueurSuivant() {
-        joueurCourant = (joueurCourant == joueur1) ? joueur2 : joueur1;
-        return joueurCourant;
+    /**
+     * Bloque le Jeu-Thread jusqu'à ce que l'utilisateur clique (via setCoup).
+     * Le flag attenteCoup est true uniquement pendant ce wait(), ce qui empêche
+     * setCoup d'accepter un coup en dehors du bon moment.
+     */
+    public synchronized Coup attendreCoup() {
+        attenteCoup = true;
+        try {
+            wait();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        attenteCoup = false;
+        return nextC;
+    }
+
+    /**
+     * Appelé par la vue quand l'utilisateur clique.
+     * Ignoré si le jeu n'est pas en train d'attendre un coup (évite de jouer 2x).
+     */
+    public void setCoup(Coup c) {
+        if (c == null) return;
+        synchronized (this) {
+            if (!attenteCoup) {
+                System.out.println("setCoup: ignoré — pas le bon moment");
+                return;
+            }
+            this.nextC = c;
+            this.notifyAll();
+        }
     }
 
     public void appliquerCoup(Coup c) {
@@ -106,8 +130,16 @@ public class Jeu extends Observable implements Runnable {
             Plateau plateau = PlateauSingleton.INSTANCE;
             Piece piece = plateau.getCase(c.dep).getPiece();
             Piece originalPiece = piece;
+
             if (piece == null) {
-                System.out.println(" Move result: no piece at departure");
+                System.out.println("Move result: no piece at departure");
+                return;
+            }
+
+            // Valider que la pièce appartient au joueur courant
+            if (piece.isBlanc() != joueurCourant.isBlanc()) {
+                System.out.println("Move rejected: not your piece (expected "
+                        + (joueurCourant.isBlanc() ? "Blanc" : "Noir") + ")");
                 return;
             }
 
@@ -115,6 +147,7 @@ public class Jeu extends Observable implements Runnable {
             Piece capturedEnPassant = null;
             boolean isEnPassant = false;
 
+            // Détection prise en passant
             if (piece instanceof Pawn && captured == null
                     && c.dep.y != c.arr.y && c.dep.x != c.arr.x) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
@@ -144,6 +177,7 @@ public class Jeu extends Observable implements Runnable {
                 System.out.println("(Pion capturé en passant)");
             }
 
+            // Détection roque
             boolean isCastling = false;
             if (piece instanceof King) {
                 int colorIndex = piece.isBlanc() ? 0 : 1;
@@ -176,46 +210,40 @@ public class Jeu extends Observable implements Runnable {
                 roqueDisponible[colorIndex] = false;
             }
 
-
+            // Promotion
             Piece promotedPiece = piece;
-            if (piece instanceof Pawn && !isCastling) {
+            if (piece instanceof Pawn) {
                 int endRow = c.arr.x;
                 if ((piece.isBlanc() && endRow == 0) || (!piece.isBlanc() && endRow == 7)) {
                     Piece newQueen = new Queen(piece.getColor());
                     plateau.getCase(c.arr).setPiece(newQueen);
                     promotedPiece = newQueen;
                     c.setType("PROMOTION");
-                    System.out.println("MISE A JOUR: PROMOTION");
-                    System.out.println("Pion -> Reine");
+                    System.out.println("MISE A JOUR: PROMOTION — Pion -> Reine");
                 }
             }
-
 
             echiquier.syncFromPlateau(plateau);
             dernierCoup = c;
 
+            // Si le coup laisse le roi du joueur courant en échec → coup illégal, annuler
             if (joueurCourant.estEnEchec()) {
-                System.out.println("MISE A JOUR: ROI EN ÉCHEC");
-                System.out.println("Le coup laisse le roi en échec");
+                System.out.println("MISE A JOUR: ROI EN ÉCHEC — coup illégal, annulation");
 
                 plateau.deplacer(c.arr, c.dep);
 
                 if (promotedPiece != originalPiece) {
                     plateau.getCase(c.dep).setPiece(originalPiece);
                 }
-
                 if (captured != null) {
                     plateau.getCase(c.arr).setPiece(captured);
                 }
-
-
                 if (isEnPassant) {
                     int dirEnPassant = piece.isBlanc() ? 1 : -1;
                     plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(capturedEnPassant);
                     plateau.getCase(c.arr).setPiece(null);
                 }
-
-                if (isCastling && piece instanceof King) {
+                if (isCastling) {
                     if (c.arr.y > c.dep.y) {
                         Piece rook = plateau.getCase(c.arr.x, 5).getPiece();
                         if (rook instanceof Rook) {
@@ -237,93 +265,37 @@ public class Jeu extends Observable implements Runnable {
                 return;
             }
 
-            // Vérifier si le prochain joueur est en échec (mais pas échec et mat ou pat)
-            Joueur joueurSuivant = (joueurCourant == joueur1) ? joueur2 : joueur1;
-            if (joueurSuivant.estEnEchec()) {
+            // Vérifier si l'adversaire est en échec simple
+            Joueur adversaire = (joueurCourant == joueur1) ? joueur2 : joueur1;
+            if (adversaire.estEnEchec()) {
                 c.setType("ECHEC");
                 System.out.println("MISE A JOUR: ÉCHEC");
             }
 
             System.out.println("MISE A JOUR: coup valide");
             setChanged();
-            this.notifyAll();
             notifyObservers(c);
         }
     }
-
-    public void setCoup(Coup c) {
-        if (c == null) return;
-        synchronized (this) {
-            this.nextC = c;
-            this.notifyAll();
-            setChanged();
-            notifyObservers(c);
-        }
-    }
-
-
-    private boolean estRoqueValide(Coup c, Piece piece) {
-        if (!(piece instanceof King)) return false;
-        if (Math.abs(c.arr.y - c.dep.y) != 2) return false;
-
-        int colorIndex = piece.isBlanc() ? 0 : 1;
-        if (roiBouge[colorIndex]) return false;
-
-        Plateau plateau = PlateauSingleton.INSTANCE;
-
-
-        int minY = Math.min(c.dep.y, c.arr.y);
-        int maxY = Math.max(c.dep.y, c.arr.y);
-        for (int y = minY + 1; y < maxY; y++) {
-            if (!plateau.getCase(c.dep.x, y).isEmpty()) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-
-    private boolean estPriseEnPassantValide(Coup c, Piece piece) {
-        if (!(piece instanceof Pawn)) return false;
-        if (dernierCoup == null) return false;
-
-
-        Plateau plateau = PlateauSingleton.INSTANCE;
-        Piece lastMovedPiece = plateau.getCase(dernierCoup.arr).getPiece();
-        if (!(lastMovedPiece instanceof Pawn)) return false;
-
-
-        if (c.arr.x == dernierCoup.arr.x && c.arr.y == dernierCoup.arr.y + 1 ||
-            c.arr.x == dernierCoup.arr.x && c.arr.y == dernierCoup.arr.y - 1) {
-            int dist = Math.abs(dernierCoup.arr.x - dernierCoup.dep.x);
-            return dist == 2;
-        }
-
-        return false;
-    }
-
 
     public boolean estEchecEtMat(Joueur joueur) {
-
         return joueur.estEnEchec() && !joueur.aDesCoupsLegaux();
     }
 
-
     public boolean estPat(Joueur joueur) {
-
         return !joueur.estEnEchec() && !joueur.aDesCoupsLegaux();
     }
-
-
 
     public boolean aGagne(Joueur joueur) {
         Joueur adversaire = (joueur == joueur1) ? joueur2 : joueur1;
         return estEchecEtMat(adversaire);
     }
 
-    // Retourne le dernier coup joué (utilisé notamment pour la prise en passant)
     public Coup getDernierCoup() {
         return dernierCoup;
+    }
+
+    public Joueur getJoueurCourant() {
+        return joueurCourant;
     }
 }
