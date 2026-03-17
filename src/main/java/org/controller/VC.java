@@ -25,6 +25,8 @@ public class VC extends JFrame implements Observer {
     private AWTEventListener globalMouseListener;
     private Color BEIGE = new Color(240, 217, 181);
     private Color MARRON = new Color(181, 136, 99);
+    private Color HIGHLIGHT = new Color(100, 200, 100);
+    private java.util.List<Point> casesAccessiblesHighlightees = new java.util.ArrayList<>();
 
     private final JPanel[][] casePanels = new JPanel[8][8];
     private final JLabel[][] caseLabels = new JLabel[8][8];
@@ -56,6 +58,13 @@ public class VC extends JFrame implements Observer {
                     @Override
                     public void mousePressed(MouseEvent e) {
                         synchronized (jeu) {
+                            // clear previous highlights
+                            for (Point p : casesAccessiblesHighlightees) {
+                                Color couleur = ((p.x + p.y) % 2 == 0) ? BEIGE : MARRON;
+                                casePanels[p.x][p.y].setBackground(couleur);
+                            }
+                            casesAccessiblesHighlightees.clear();
+
                             depart = new Point(ligne, colonne);
                             draggingPanel = casePanel;
                             casePanel.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 3));
@@ -66,6 +75,95 @@ public class VC extends JFrame implements Observer {
                                 depart = null;
                                 draggingPanel = null;
                                 return;
+                            }
+
+
+                            Piece piece = jeu.getEchiquier().getPiece(ligne, colonne);
+                            if (piece != null) {
+                                java.util.List<org.model.plateau.Case> casesAccessibles = piece.getCaseAccessible();
+                                System.out.println("VC: compute targets for " + piece.getClass().getSimpleName() + " at (" + ligne + "," + colonne + ") color=" + (piece.isBlanc()?"W":"B"));
+                                System.out.print("VC: base cases:");
+                                for (org.model.plateau.Case ac : casesAccessibles) {
+                                    if (ac != null) System.out.print(" (" + ac.getX() + "," + ac.getY() + ")");
+                                }
+                                System.out.println();
+
+                                if (piece instanceof org.model.piece.Pawn) {
+                                    int dir = piece.isBlanc() ? -1 : 1;
+                                    org.model.plateau.Plateau plateau = org.model.plateau.PlateauSingleton.INSTANCE;
+                                    org.model.Coup dernier = jeu.getDernierCoup();
+                                    if (dernier != null) {
+                                        org.model.piece.Piece last = plateau.getCase(dernier.arr).getPiece();
+                                        if (last instanceof org.model.piece.Pawn && last.isBlanc() != piece.isBlanc()) {
+                                            int dist = Math.abs(dernier.arr.x - dernier.dep.x);
+                                            if (dist == 2 && dernier.arr.x == ligne) {
+                                                int colAdverse = dernier.arr.y;
+                                                if (Math.abs(colAdverse - colonne) == 1) {
+                                                    int xPassant = ligne + dir;
+                                                    if (xPassant >= 0 && xPassant < 8) {
+                                                        org.model.plateau.Case cp = plateau.getCase(xPassant, colAdverse);
+                                                        if (cp != null) {
+                                                            if (!casesAccessibles.contains(cp)) {
+                                                                System.out.println("VC: en-passant candidate at (" + xPassant + "," + colAdverse + ") for pawn at (" + ligne + "," + colonne + ")");
+                                                                casesAccessibles.add(cp);
+                                                            }
+                                                        } else {
+                                                            System.out.println("VC: en-passant target case null at (" + xPassant + "," + colAdverse + ")");
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    int xPromotion = ligne + dir;
+                                    if ((piece.isBlanc() && xPromotion == 0) || (!piece.isBlanc() && xPromotion == 7)) {
+                                        org.model.plateau.Case av = org.model.plateau.PlateauSingleton.INSTANCE.getCase(xPromotion, colonne);
+                                        if (av != null && !casesAccessibles.contains(av)) {
+                                            System.out.println("VC: promotion advance candidate at (" + xPromotion + "," + colonne + ")");
+                                            casesAccessibles.add(av);
+                                        }
+                                        for (int yDiag = colonne - 1; yDiag <= colonne + 1; yDiag += 2) {
+                                            if (yDiag >= 0 && yDiag < 8) {
+                                                org.model.plateau.Case cd = org.model.plateau.PlateauSingleton.INSTANCE.getCase(xPromotion, yDiag);
+                                                if (cd != null && cd.getPiece() != null && cd.getPiece().isBlanc() != piece.isBlanc() && !casesAccessibles.contains(cd)) {
+                                                    System.out.println("VC: promotion capture candidate at (" + xPromotion + "," + yDiag + ")");
+                                                    casesAccessibles.add(cd);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (piece instanceof org.model.piece.King) {
+                                    org.model.plateau.Plateau plateau = org.model.plateau.PlateauSingleton.INSTANCE;
+                                    if (colonne + 2 < 8) {
+                                        org.model.plateau.Case r = plateau.getCase(ligne, colonne + 2);
+                                        if (r != null && r.isEmpty() && !casesAccessibles.contains(r)) casesAccessibles.add(r);
+                                    }
+                                    if (colonne - 2 >= 0) {
+                                        org.model.plateau.Case r = plateau.getCase(ligne, colonne - 2);
+                                        if (r != null && r.isEmpty() && !casesAccessibles.contains(r)) casesAccessibles.add(r);
+                                    }
+                                }
+
+                                System.out.print("VC: final targets:");
+                                for (org.model.plateau.Case tgt : casesAccessibles) {
+                                    if (tgt == null) continue;
+                                    System.out.print(" (" + tgt.getX() + "," + tgt.getY() + ")");
+                                }
+                                System.out.println();
+
+                                for (org.model.plateau.Case tgt : casesAccessibles) {
+                                    if (tgt == null) continue;
+                                    int x = tgt.getX();
+                                    int y = tgt.getY();
+                                    if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                                        casePanels[x][y].setBackground(HIGHLIGHT);
+                                        casesAccessiblesHighlightees.add(new Point(x, y));
+                                        try { casePanels[x][y].revalidate(); casePanels[x][y].repaint(); } catch (Exception ignored) {}
+                                    }
+                                }
                             }
 
                             JLabel ghost;
@@ -92,6 +190,14 @@ public class VC extends JFrame implements Observer {
                     @Override
                     public void mouseReleased(MouseEvent e) {
                         synchronized (jeu) {
+                            // clear highlights
+                            for (Point p : casesAccessiblesHighlightees) {
+                                Color couleur = ((p.x + p.y) % 2 == 0) ? BEIGE : MARRON;
+                                casePanels[p.x][p.y].setBackground(couleur);
+                                try { casePanels[p.x][p.y].revalidate(); casePanels[p.x][p.y].repaint(); } catch (Exception ignored) {}
+                            }
+                            casesAccessiblesHighlightees.clear();
+
                             if (depart != null) {
                                 jeu.setCoup(new Coup(depart, new Point(ligne, colonne)));
                                 depart = null;
@@ -111,13 +217,19 @@ public class VC extends JFrame implements Observer {
 
                     @Override
                     public void mouseEntered(MouseEvent e) {
-                        casePanel.setBackground(Color.RED);
+                        // don't override highlight color
+                        if (!casesAccessiblesHighlightees.contains(new Point(ligne, colonne))) {
+                            casePanel.setBackground(Color.RED);
+                        }
                     }
 
                     @Override
                     public void mouseExited(MouseEvent e) {
-                        Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? BEIGE: MARRON;
-                        casePanel.setBackground(couleurOriginale);
+                        // restore original unless highlighted
+                        if (!casesAccessiblesHighlightees.contains(new Point(ligne, colonne))) {
+                            Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? BEIGE: MARRON;
+                            casePanel.setBackground(couleurOriginale);
+                        }
                     }
                 });
 

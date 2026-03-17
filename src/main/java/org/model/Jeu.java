@@ -321,4 +321,9 @@ public class Jeu extends Observable implements Runnable {
         Joueur adversaire = (joueur == joueur1) ? joueur2 : joueur1;
         return estEchecEtMat(adversaire);
     }
+
+    // Retourne le dernier coup joué (utilisé notamment pour la prise en passant)
+    public Coup getDernierCoup() {
+        return dernierCoup;
+    }
 }
