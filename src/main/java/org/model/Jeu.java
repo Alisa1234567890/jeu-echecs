@@ -19,8 +19,8 @@ public class Jeu extends Observable implements Runnable {
 
     private EchiquierModele echiquier;
     private Coup dernierCoup;  // Pour la prise en passant
-    private boolean[] roqueDisponible = new boolean[2];  // [blanc, noir]
-    private boolean[] roiBouge = new boolean[2];  // [blanc, noir] - pour déterminer si roque possible
+    private boolean[] roqueDisponible = new boolean[2];  // blanc, noir
+    private boolean[] roiBouge = new boolean[2];  // blanc, noir - pour déterminer si roque possible
 
     public Jeu() {
         echiquier = new EchiquierModele();
@@ -141,7 +141,7 @@ public class Jeu extends Observable implements Runnable {
             if (isEnPassant) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
                 plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(null);
-                System.out.println("    (Pion capturé en passant)");
+                System.out.println("(Pion capturé en passant)");
             }
 
             boolean isCastling = false;
@@ -158,14 +158,14 @@ public class Jeu extends Observable implements Runnable {
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 7).setPiece(null);
                             plateau.getCase(c.arr.x, 5).setPiece(rook);
-                            System.out.println("    (Roque côté roi)");
+                            System.out.println("(Roque côté roi)");
                         }
                     } else {
                         Piece rook = plateau.getCase(c.arr.x, 0).getPiece();
                         if (rook instanceof Rook) {
                             plateau.getCase(c.arr.x, 0).setPiece(null);
                             plateau.getCase(c.arr.x, 3).setPiece(rook);
-                            System.out.println("    (Roque côté reine)");
+                            System.out.println("(Roque côté reine)");
                         }
                     }
                 }
@@ -186,7 +186,7 @@ public class Jeu extends Observable implements Runnable {
                     promotedPiece = newQueen;
                     c.setType("PROMOTION");
                     System.out.println("MISE A JOUR: PROMOTION");
-                    System.out.println("    Pion -> Reine");
+                    System.out.println("Pion -> Reine");
                 }
             }
 
@@ -196,7 +196,7 @@ public class Jeu extends Observable implements Runnable {
 
             if (joueurCourant.estEnEchec()) {
                 System.out.println("MISE A JOUR: ROI EN ÉCHEC");
-                System.out.println("    Le coup laisse le roi en échec");
+                System.out.println("Le coup laisse le roi en échec");
 
                 plateau.deplacer(c.arr, c.dep);
 
