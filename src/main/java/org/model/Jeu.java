@@ -55,12 +55,9 @@ public class Jeu extends Observable implements Runnable {
             // Vérifier les conditions de fin de partie
             if (estEchecEtMat(js)) {
                 String gagnant = js.isBlanc() ? "Noir" : "Blanc";
-                System.out.println("\n╔════════════════════════════════════════╗");
-                System.out.println("║   ✅ UPDATE RECEIVED: ÉCHEC ET MAT!    ║");
-                System.out.println("╠════════════════════════════════════════╣");
-                System.out.println("║   Gagnant: " + String.format("%-26s", gagnant) + "║");
-                System.out.println("║   Perdant: " + String.format("%-26s", (js.isBlanc() ? "Blanc" : "Noir")) + "║");
-                System.out.println("╚════════════════════════════════════════╝\n");
+                System.out.println("RÉSULTAT: ÉCHEC ET MAT!");
+                System.out.println("Gagnant: " + String.format("%-26s", gagnant));
+                System.out.println("Perdant: " + String.format("%-26s", (js.isBlanc() ? "Blanc" : "Noir")));
 
                 if (nextC != null) {
                     nextC.setType("ECHEC ET MAT"); // Marquer le dernier coup
@@ -72,15 +69,11 @@ public class Jeu extends Observable implements Runnable {
             }
             
             if (estPat(js)) {
-                System.out.println("\n╔════════════════════════════════════════╗");
-                System.out.println("║      ✅ UPDATE RECEIVED: PAT!          ║");
-                System.out.println("╠════════════════════════════════════════╣");
-                System.out.println("║   Partie nulle (Match Nul)             ║");
-                System.out.println("║   Aucun joueur n'a gagné               ║");
-                System.out.println("╚════════════════════════════════════════╝\n");
+                System.out.println("RÉSULTAT: PAT!");
+                System.out.println("Aucun joueur n'a gagné ");
 
                 if (nextC != null) {
-                    nextC.setType("PAT"); // Marquer le dernier coup
+                    nextC.setType("PAT");
                 }
                 termine = true;
                 setChanged();
@@ -108,7 +101,7 @@ public class Jeu extends Observable implements Runnable {
         if (c == null) return;
         synchronized (this) {
             nextC = c;
-            System.out.println("\n🎯 Attempting move: " + c.dep + " -> " + c.arr);
+            System.out.println("Attempting move: " + c.dep + " -> " + c.arr);
 
             Plateau plateau = PlateauSingleton.INSTANCE;
             Piece piece = plateau.getCase(c.dep).getPiece();
@@ -122,7 +115,6 @@ public class Jeu extends Observable implements Runnable {
             Piece capturedEnPassant = null;
             boolean isEnPassant = false;
 
-            // 0. Déterminer si c'est une prise en passant AVANT de déplacer
             if (piece instanceof Pawn && captured == null
                     && c.dep.y != c.arr.y && c.dep.x != c.arr.x) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
@@ -130,35 +122,28 @@ public class Jeu extends Observable implements Runnable {
                 if (pawnCaptured instanceof Pawn && pawnCaptured.isBlanc() != piece.isBlanc()) {
                     isEnPassant = true;
                     capturedEnPassant = pawnCaptured;
-                    c.setType("PRISE EN PASSANT"); // Marquer le coup
-                    // CRUCIAL : placer temporairement le pion ennemi sur c.arr
-                    // pour que plateau.deplacer() accepte le mouvement diagonal
+                    c.setType("PRISE EN PASSANT");
                     plateau.getCase(c.arr).setPiece(capturedEnPassant);
-                    System.out.println("✅ UPDATE RECEIVED: PRISE EN PASSANT");
+                    System.out.println("MISE A JOUR: PRISE EN PASSANT");
                 }
             }
 
-            // 1. Vérifier que le mouvement est légal
             boolean ok = plateau.deplacer(c.dep, c.arr);
             if (!ok) {
-                // Annuler le placement temporaire si besoin
                 if (isEnPassant) plateau.getCase(c.arr).setPiece(null);
-                System.out.println("❌ UPDATE RECEIVED: MOVE INVALID");
-                System.out.println("    Mouvement illégal");
+                System.out.println("MISE A JOUR: deplacement non autorise");
                 echiquier.syncFromPlateau(plateau);
                 setChanged();
                 notifyObservers(c);
                 return;
             }
 
-            // 2. Retirer le vrai pion capturé en passant (sa case d'origine, pas c.arr)
             if (isEnPassant) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
                 plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(null);
                 System.out.println("    (Pion capturé en passant)");
             }
 
-            // 3. Gérer le roque AVANT promotion
             boolean isCastling = false;
             if (piece instanceof King) {
                 int colorIndex = piece.isBlanc() ? 0 : 1;
@@ -166,8 +151,8 @@ public class Jeu extends Observable implements Runnable {
 
                 if (Math.abs(c.arr.y - c.dep.y) == 2) {
                     isCastling = true;
-                    c.setType("ROQUE"); // Marquer le coup
-                    System.out.println("✅ UPDATE RECEIVED: ROQUE");
+                    c.setType("ROQUE");
+                    System.out.println("MISE A JOUR: ROQUE");
                     if (c.arr.y > c.dep.y) {
                         Piece rook = plateau.getCase(c.arr.x, 7).getPiece();
                         if (rook instanceof Rook) {
@@ -199,19 +184,18 @@ public class Jeu extends Observable implements Runnable {
                     Piece newQueen = new Queen(piece.getColor());
                     plateau.getCase(c.arr).setPiece(newQueen);
                     promotedPiece = newQueen;
-                    c.setType("PROMOTION"); // Marquer le coup
-                    System.out.println("✅ UPDATE RECEIVED: PROMOTION");
+                    c.setType("PROMOTION");
+                    System.out.println("MISE A JOUR: PROMOTION");
                     System.out.println("    Pion -> Reine");
                 }
             }
 
-            // 6. Synchroniser l'affichage
+
             echiquier.syncFromPlateau(plateau);
             dernierCoup = c;
 
-            // 7. Vérifier échec après le coup
             if (joueurCourant.estEnEchec()) {
-                System.out.println("❌ UPDATE RECEIVED: INVALID - ROI EN ÉCHEC");
+                System.out.println("MISE A JOUR: ROI EN ÉCHEC");
                 System.out.println("    Le coup laisse le roi en échec");
 
                 plateau.deplacer(c.arr, c.dep);
@@ -253,8 +237,7 @@ public class Jeu extends Observable implements Runnable {
                 return;
             }
 
-            System.out.println("✅ UPDATE RECEIVED: MOVE ACCEPTED");
-            System.out.println("    Coup valide");
+            System.out.println("MISE A JOUR: coup valide");
             setChanged();
             this.notifyAll();
             notifyObservers(c);
@@ -277,11 +260,11 @@ public class Jeu extends Observable implements Runnable {
         if (Math.abs(c.arr.y - c.dep.y) != 2) return false;
 
         int colorIndex = piece.isBlanc() ? 0 : 1;
-        if (roiBouge[colorIndex]) return false;  // Le roi a déjà bougé
+        if (roiBouge[colorIndex]) return false;
 
         Plateau plateau = PlateauSingleton.INSTANCE;
 
-        // Vérifier que les cases intermédiaires sont vides
+
         int minY = Math.min(c.dep.y, c.arr.y);
         int maxY = Math.max(c.dep.y, c.arr.y);
         for (int y = minY + 1; y < maxY; y++) {
