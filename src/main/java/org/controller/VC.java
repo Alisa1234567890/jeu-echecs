@@ -121,7 +121,7 @@ public class VC extends JFrame implements Observer {
                                     int xPromotion = ligne + dir;
                                     if ((piece.isBlanc() && xPromotion == 0) || (!piece.isBlanc() && xPromotion == 7)) {
                                         org.model.plateau.Case av = org.model.plateau.PlateauSingleton.INSTANCE.getCase(xPromotion, colonne);
-                                        if (av != null && !casesAccessibles.contains(av)) {
+                                        if (av != null && av.isEmpty() && !casesAccessibles.contains(av)) {
                                             System.out.println("VC: promotion advance candidate at (" + xPromotion + "," + colonne + ")");
                                             casesAccessibles.add(av);
                                         }
