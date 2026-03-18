@@ -4,6 +4,7 @@ import org.model.Coup;
 import org.model.Jeu;
 import org.model.JeuObserver;
 import org.model.piece.Piece;
+import org.model.plateau.Case;
 import org.tools.SvgToPngConverter;
 
 import javax.swing.BorderFactory;
@@ -33,21 +34,25 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class VC extends JFrame implements JeuObserver {
 
     private final Jeu jeu;
-    private Point depart;
+    private final JPanel[][] casePanels = new JPanel[8][8];
+    private final JLabel[][] caseLabels = new JLabel[8][8];
+    private final List<Point> highlightedMoves = new ArrayList<>();
+
     private JPanel panel;
+    private Point depart;
     private JPanel draggingPanel;
     private JWindow dragWindow;
     private Point dragOffset;
     private AWTEventListener globalMouseListener;
+
     private final Color beige = new Color(240, 217, 181);
     private final Color marron = new Color(181, 136, 99);
-
-    private final JPanel[][] casePanels = new JPanel[8][8];
-    private final JLabel[][] caseLabels = new JLabel[8][8];
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
@@ -58,35 +63,35 @@ public class VC extends JFrame implements JeuObserver {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         panel = new JPanel(new GridLayout(8, 8));
-        for (int l = 0; l < 8; l++) {
-            for (int c = 0; c < 8; c++) {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
                 JPanel casePanel = new JPanel(new BorderLayout());
-                casePanels[l][c] = casePanel;
+                casePanels[row][col] = casePanel;
                 JLabel label = new JLabel("", SwingConstants.CENTER);
-                caseLabels[l][c] = label;
+                caseLabels[row][col] = label;
                 casePanel.add(label, BorderLayout.CENTER);
 
-                final int ligne = l;
-                final int colonne = c;
+                final int ligne = row;
+                final int colonne = col;
 
                 casePanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mousePressed(MouseEvent e) {
                         synchronized (jeu) {
                             if (!jeu.canSelectPiece(ligne, colonne)) {
-                                depart = null;
-                                draggingPanel = null;
+                                clearSelection();
+                                redraw();
                                 return;
                             }
 
                             depart = new Point(ligne, colonne);
                             draggingPanel = casePanel;
                             casePanel.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 3));
+                            updateHighlights(ligne, colonne);
 
-                            Component comp = (casePanel.getComponentCount() > 0) ? casePanel.getComponent(0) : null;
+                            Component comp = casePanel.getComponentCount() > 0 ? casePanel.getComponent(0) : null;
                             JLabel source = (comp instanceof JLabel) ? (JLabel) comp : null;
                             if (source == null || (source.getIcon() == null && (source.getText() == null || source.getText().isEmpty()))) {
-                                depart = null;
                                 draggingPanel = null;
                                 return;
                             }
@@ -101,52 +106,29 @@ public class VC extends JFrame implements JeuObserver {
                             dragOffset = new Point(dragWindow.getWidth() / 2, dragWindow.getHeight() / 2);
                             dragWindow.setLocation(e.getXOnScreen() - dragOffset.x, e.getYOnScreen() - dragOffset.y);
                             dragWindow.setVisible(true);
+                            redraw();
                         }
                     }
 
                     @Override
                     public void mouseReleased(MouseEvent e) {
                         synchronized (jeu) {
-                            // clear highlights
-                            for (Point p : casesAccessiblesHighlightees) {
-                                Color couleur = ((p.x + p.y) % 2 == 0) ? BEIGE : MARRON;
-                                casePanels[p.x][p.y].setBackground(couleur);
-                                try { casePanels[p.x][p.y].revalidate(); casePanels[p.x][p.y].repaint(); } catch (Exception ignored) {}
-                            }
-                            casesAccessiblesHighlightees.clear();
-
                             if (depart != null) {
-                                jeu.setCoup(new Coup(depart, new Point(ligne, colonne)));
-                                depart = null;
-                                if (draggingPanel != null) {
-                                    draggingPanel.setBorder(null);
-                                    draggingPanel = null;
-                                }
-                                if (dragWindow != null) {
-                                    dragWindow.setVisible(false);
-                                    dragWindow.dispose();
-                                    dragWindow = null;
-                                    dragOffset = null;
-                                }
+                                submitMove(new Point(depart), new Point(ligne, colonne));
                             }
                         }
                     }
 
                     @Override
                     public void mouseEntered(MouseEvent e) {
-                        // don't override highlight color
-                        if (!casesAccessiblesHighlightees.contains(new Point(ligne, colonne))) {
+                        if (!isHighlighted(ligne, colonne)) {
                             casePanel.setBackground(Color.RED);
                         }
                     }
 
                     @Override
                     public void mouseExited(MouseEvent e) {
-                        // restore original unless highlighted
-                        if (!casesAccessiblesHighlightees.contains(new Point(ligne, colonne))) {
-                            Color couleurOriginale = ((ligne + colonne) % 2 == 0) ? BEIGE: MARRON;
-                            casePanel.setBackground(couleurOriginale);
-                        }
+                        casePanel.setBackground(backgroundFor(ligne, colonne));
                     }
                 });
 
@@ -191,13 +173,17 @@ public class VC extends JFrame implements JeuObserver {
         int cellH = Math.max(1, panelH / 8);
         int iconSize = Math.max(32, Math.min(cellW, cellH));
 
-        for (int l = 0; l < 8; l++) {
-            for (int c = 0; c < 8; c++) {
-                JPanel casePanel = casePanels[l][c];
-                JLabel label = caseLabels[l][c];
-                casePanel.setBackground(((l + c) % 2 == 0) ? beige : marron);
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                JPanel casePanel = casePanels[row][col];
+                JLabel label = caseLabels[row][col];
 
-                Piece piece = jeu.getEchiquier().getPiece(l, c);
+                casePanel.setBackground(backgroundFor(row, col));
+                if (depart == null || depart.x != row || depart.y != col) {
+                    casePanel.setBorder(null);
+                }
+
+                Piece piece = jeu.getEchiquier().getPiece(row, col);
                 if (piece == null) {
                     label.setIcon(null);
                     label.setText("");
@@ -210,8 +196,46 @@ public class VC extends JFrame implements JeuObserver {
             }
         }
 
+        if (depart != null) {
+            casePanels[depart.x][depart.y].setBorder(BorderFactory.createLineBorder(Color.YELLOW, 3));
+        }
+
         panel.revalidate();
         panel.repaint();
+    }
+
+    private void updateHighlights(int row, int col) {
+        highlightedMoves.clear();
+        Piece piece = jeu.getEchiquier().getPiece(row, col);
+        if (piece == null) {
+            return;
+        }
+
+        for (Case target : piece.getCaseAccessible()) {
+            if (target == null) {
+                continue;
+            }
+            Coup coup = new Coup(new Point(row, col), new Point(target.getX(), target.getY()));
+            if (jeu.isMoveAllowedForCurrentTurn(coup)) {
+                highlightedMoves.add(new Point(target.getX(), target.getY()));
+            }
+        }
+    }
+
+    private boolean isHighlighted(int row, int col) {
+        for (Point point : highlightedMoves) {
+            if (point.x == row && point.y == col) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Color backgroundFor(int row, int col) {
+        if (isHighlighted(row, col)) {
+            return jeu.getEchiquier().getCouleurSurvol();
+        }
+        return ((row + col) % 2 == 0) ? beige : marron;
     }
 
     private String resolvePieceResource(Piece piece) {
@@ -289,8 +313,8 @@ public class VC extends JFrame implements JeuObserver {
                 return;
             }
             if (!panel.isShowing()) {
-                cleanupDrag();
-                depart = null;
+                clearSelection();
+                redraw();
                 return;
             }
 
@@ -300,8 +324,8 @@ public class VC extends JFrame implements JeuObserver {
                 int ry = me.getYOnScreen() - panelOnScreen.y;
 
                 if (rx < 0 || ry < 0 || rx >= panel.getWidth() || ry >= panel.getHeight()) {
-                    cleanupDrag();
-                    depart = null;
+                    clearSelection();
+                    redraw();
                     return;
                 }
 
@@ -310,14 +334,24 @@ public class VC extends JFrame implements JeuObserver {
                 int col = Math.min(7, rx / cellW);
                 int row = Math.min(7, ry / cellH);
 
-                jeu.setCoup(new Coup(new Point(depart), new Point(row, col)));
-                depart = null;
-                cleanupDrag();
+                submitMove(new Point(depart), new Point(row, col));
             } catch (IllegalComponentStateException ex) {
-                cleanupDrag();
-                depart = null;
+                clearSelection();
+                redraw();
             }
         }
+    }
+
+    private void submitMove(Point source, Point target) {
+        jeu.setCoup(new Coup(source, target));
+        clearSelection();
+        redraw();
+    }
+
+    private void clearSelection() {
+        highlightedMoves.clear();
+        depart = null;
+        cleanupDrag();
     }
 
     private void cleanupDrag() {
