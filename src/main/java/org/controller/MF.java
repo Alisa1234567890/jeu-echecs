@@ -33,6 +33,7 @@ public class MF extends JFrame implements Observer {
         boardHolder.add(vc.getPanel(), BorderLayout.CENTER);
         revalidate();
         repaint();
+
     }
 
     @Override
