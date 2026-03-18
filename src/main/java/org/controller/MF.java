@@ -1,24 +1,27 @@
 package org.controller;
 
 import org.model.Jeu;
+import org.model.JeuObserver;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.Observable;
-import java.util.Observer;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
 
-public class MF extends JFrame implements Observer {
+public class MF extends JFrame implements JeuObserver {
 
     public Jeu jeu;
-    private JLabel statusLabel;
-    private JPanel boardHolder;
+    private final JLabel statusLabel;
+    private final JPanel boardHolder;
 
     public MF() {
-        super("MF Window");
+        super("Echiquier");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(600, 600);
         setLayout(new BorderLayout());
-        statusLabel = new JLabel("MF initialized", SwingConstants.CENTER);
+        statusLabel = new JLabel("Initialisation...", SwingConstants.CENTER);
         add(statusLabel, BorderLayout.NORTH);
         boardHolder = new JPanel(new BorderLayout());
         add(boardHolder, BorderLayout.CENTER);
@@ -26,6 +29,7 @@ public class MF extends JFrame implements Observer {
 
     public void setJeu(Jeu j) {
         this.jeu = j;
+        statusLabel.setText(j.getModeLabel() + " | " + j.getStatusMessage());
     }
 
     public void setVC(VC vc) {
@@ -33,25 +37,12 @@ public class MF extends JFrame implements Observer {
         boardHolder.add(vc.getPanel(), BorderLayout.CENTER);
         revalidate();
         repaint();
-
     }
 
     @Override
-    public void update(Observable o, Object arg) {
+    public void update(Object arg) {
         SwingUtilities.invokeLater(() -> {
-            String msg = "Update received";
-            if (arg != null) {
-                String argStr = arg.toString();
-                if (argStr.contains("ÉCHEC ET MAT")) {
-                    msg = argStr ;
-                } else if (argStr.contains("PAT")) {
-                    msg = argStr ;
-                } else if (argStr.contains("ÉCHEC")) {
-                    msg = "ÉCHEC ! ";
-                } else {
-                    msg = argStr;
-                }
-            }
+            String msg = jeu != null ? jeu.getModeLabel() + " | " + jeu.getStatusMessage() : "Mise a jour";
             statusLabel.setText(msg);
             repaint();
         });

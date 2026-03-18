@@ -6,9 +6,8 @@ import org.model.Joueur;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observable;
 
-public class EchiquierModele extends Observable {
+public class EchiquierModele {
 
     private Piece[][] board;
 
@@ -49,8 +48,6 @@ public class EchiquierModele extends Observable {
             board[6][col] = new Pawn("white");
         }
 
-        setChanged();
-        notifyObservers();
     }
 
     public Piece getPiece(int row, int col) {
@@ -60,8 +57,6 @@ public class EchiquierModele extends Observable {
     public void setPiece(int row, int col, Piece p) {
         board[row][col] = p;
         if (p != null) p.setCase(new Case(row, col));
-        setChanged();
-        notifyObservers();
     }
 
     public void syncFromPlateau(Plateau plateau) {
@@ -75,8 +70,6 @@ public class EchiquierModele extends Observable {
                 }
             }
         }
-        setChanged();
-        notifyObservers();
     }
 
     public Color getCouleurCase(int ligne, int colonne) {

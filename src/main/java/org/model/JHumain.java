@@ -2,20 +2,26 @@ package org.model;
 
 public class JHumain extends Joueur {
 
-    private boolean blanc;
-
-    public JHumain(Jeu jeu, boolean blanc) {
-        super(jeu);
-        this.blanc = blanc;
+    public JHumain(Jeu jeu, boolean blanc, String nom) {
+        super(jeu, blanc, nom);
     }
 
     @Override
     public Coup getCoup() {
-        return jeu.attendreCoup();
-    }
-
-    @Override
-    public boolean isBlanc() {
-        return blanc;
+        synchronized (jeu) {
+            while (!jeu.partieTerminee()) {
+                Coup coup = jeu.consumePendingHumanMove(blanc);
+                if (coup != null) {
+                    return coup;
+                }
+                try {
+                    jeu.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
+            return null;
+        }
     }
 }
