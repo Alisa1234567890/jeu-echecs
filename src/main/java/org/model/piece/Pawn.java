@@ -25,11 +25,13 @@ public class Pawn extends Piece {
         int dir = isBlanc() ? -1 : 1;
 
 
+        // Forward move (only if square is empty)
         Case devant = plateau.getCase(x + dir, y);
         if (devant != null && devant.isEmpty()) {
             res.add(devant);
 
 
+            // Double push from starting rank
             boolean estAuDepart = (isBlanc() && x == 6) || (!isBlanc() && x == 1);
             if (estAuDepart) {
                 Case devant2 = plateau.getCase(x + (2 * dir), y);
@@ -40,17 +42,27 @@ public class Pawn extends Piece {
         }
 
 
+        // Diagonal captures (only if enemy piece present)
         int[] colonnesDiagonales = {y - 1, y + 1};
         for (int c : colonnesDiagonales) {
             Case diag = plateau.getCase(x + dir, c);
-            if (diag != null && !diag.isEmpty()) {
-
-                if (diag.getPiece().isBlanc() != this.isBlanc()) {
-                    res.add(diag);
-                }
+            if (diag != null && !diag.isEmpty() && diag.getPiece().isBlanc() != this.isBlanc()) {
+                res.add(diag);
             }
         }
 
+
+        // En passant: add target square if it is diagonally forward from this pawn
+        Case epTarget = plateau.getEnPassantTarget();
+        if (epTarget != null) {
+            int epX = epTarget.getX();
+            int epY = epTarget.getY();
+            if (epX == x + dir && (epY == y - 1 || epY == y + 1)) {
+                if (!res.contains(epTarget)) {
+                    res.add(epTarget);
+                }
+            }
+        }
 
         return res;
     }

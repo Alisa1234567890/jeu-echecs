@@ -8,6 +8,11 @@ public class Plateau {
 
     private final int size = 8;
     private final Case[][] cases;
+    /** Square the capturing pawn lands on during en passant. Set after every double-pawn push. */
+    private Case enPassantTarget = null;
+
+    public Case getEnPassantTarget() { return enPassantTarget; }
+    public void setEnPassantTarget(Case c) { this.enPassantTarget = c; }
 
     public Plateau() {
         cases = new Case[size][size];
@@ -41,12 +46,7 @@ public class Plateau {
                 break;
             }
         }
-        if (!allowed) {
-            try {
-                allowed = p.isValidMove(dep.x, dep.y, arr.x, arr.y);
-            } catch (Exception ignored) {
-            }
-        }
+        // No isValidMove fallback – getCaseAccessible() is the single source of truth
         if (!allowed) return false;
         cDep.setPiece(null);
         cArr.setPiece(p);
