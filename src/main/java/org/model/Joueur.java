@@ -1,10 +1,11 @@
 package org.model;
 
-import java.util.List;
-import java.awt.Point;
 import org.model.piece.Piece;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
+
+import java.awt.Point;
+import java.util.List;
 
 public abstract class Joueur {
 
@@ -16,13 +17,11 @@ public abstract class Joueur {
 
     public abstract Coup getCoup();
 
-
     public boolean estEnEchec() {
         Piece roi = jeu.getEchiquier().getRoi(this);
         if (roi == null) {
             throw new IllegalStateException("Le roi du joueur est introuvable.");
         }
-
 
         List<Piece> piecesAdverses = jeu.getEchiquier().getPiecesAdverses(this);
         for (Piece piece : piecesAdverses) {
@@ -32,7 +31,6 @@ public abstract class Joueur {
         }
         return false;
     }
-
 
     public boolean aDesCoupsLegaux() {
         List<Piece> pieces = jeu.getEchiquier().getPieces(this);
@@ -54,10 +52,8 @@ public abstract class Joueur {
         return false;
     }
 
-
     private boolean estCoupLegal(Point from, Point to) {
         Plateau plateau = PlateauSingleton.INSTANCE;
-
 
         Piece pieceAtFrom = plateau.getCase(from).getPiece();
         Piece pieceAtTo = plateau.getCase(to).getPiece();
