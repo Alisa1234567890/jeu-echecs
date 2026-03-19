@@ -18,7 +18,7 @@ public class Jeu extends Observable implements Runnable {
 
     private EchiquierModele echiquier;
     private Coup dernierCoup;
-    // true uniquement quand le jeu est bloqué dans attendreCoup() - empêche de jouer 2x
+    // true uniquement quand le jeu est bloqué dans attendreCoup()
     private volatile boolean attenteCoup = false;
 
     public Jeu() {
@@ -53,7 +53,6 @@ public class Jeu extends Observable implements Runnable {
                 moved = appliquerCoup(c);
             }
 
-            // Only advance the turn when a legal move was actually made
             if (!moved) continue;
 
             Joueur joueurSuivant = (joueurCourant == joueur1) ? joueur2 : joueur1;
@@ -85,11 +84,6 @@ public class Jeu extends Observable implements Runnable {
         return termine;
     }
 
-    /**
-     * Bloque le Jeu-Thread jusqu'à ce que l'utilisateur clique (via setCoup).
-     * Le flag attenteCoup est true uniquement pendant ce wait(), ce qui empêche
-     * setCoup d'accepter un coup en dehors du bon moment.
-     */
     public synchronized Coup attendreCoup() {
         attenteCoup = true;
         try {
@@ -101,10 +95,6 @@ public class Jeu extends Observable implements Runnable {
         return nextC;
     }
 
-    /**
-     * Appelé par la vue quand l'utilisateur clique.
-     * Ignoré si le jeu n'est pas en train d'attendre un coup (évite de jouer 2x).
-     */
     public void setCoup(Coup c) {
         if (c == null) return;
         synchronized (this) {
@@ -139,14 +129,13 @@ public class Jeu extends Observable implements Runnable {
                 return false;
             }
 
-            // Save en passant target for possible rollback
             org.model.plateau.Case oldEnPassantTarget = plateau.getEnPassantTarget();
 
             Piece captured = plateau.getCase(c.arr).getPiece();
             Piece capturedEnPassant = null;
             boolean isEnPassant = false;
 
-            // Detect en passant: diagonal pawn move to the current ep-target square (empty)
+            // Detecter le prise en passant
             org.model.plateau.Case epTarget = plateau.getEnPassantTarget();
             if (piece instanceof Pawn && captured == null && c.dep.y != c.arr.y
                     && epTarget != null
@@ -171,7 +160,6 @@ public class Jeu extends Observable implements Runnable {
                 return false;
             }
 
-            // Remove the captured pawn (en passant)
             if (isEnPassant) {
                 int dirEnPassant = piece.isBlanc() ? 1 : -1;
                 plateau.getCase(c.arr.x + dirEnPassant, c.arr.y).setPiece(null);
@@ -217,7 +205,6 @@ public class Jeu extends Observable implements Runnable {
             echiquier.syncFromPlateau(plateau);
             dernierCoup = c;
 
-            // Update en passant target: set after double pawn push, clear otherwise
             if (piece instanceof Pawn && Math.abs(c.arr.x - c.dep.x) == 2) {
                 int passedRow = (c.dep.x + c.arr.x) / 2;
                 plateau.setEnPassantTarget(plateau.getCase(passedRow, c.arr.y));
@@ -226,11 +213,9 @@ public class Jeu extends Observable implements Runnable {
                 plateau.setEnPassantTarget(null);
             }
 
-            // Si le coup laisse le roi du joueur courant en échec → coup illégal, annuler
             if (joueurCourant.estEnEchec()) {
                 System.out.println("MISE A JOUR: ROI EN ÉCHEC — coup illégal, annulation");
 
-                // Direct restoration — bypass deplacer (backward moves not in getCaseAccessible)
                 plateau.getCase(c.dep).setPiece(originalPiece);
                 plateau.getCase(c.arr).setPiece(captured);
 
@@ -261,7 +246,7 @@ public class Jeu extends Observable implements Runnable {
                 return false;
             }
 
-            // Vérifier si l'adversaire est en échec simple
+            // Vérifier si l'adversaire est en échec
             Joueur adversaire = (joueurCourant == joueur1) ? joueur2 : joueur1;
             if (adversaire.estEnEchec()) {
                 c.setType("ECHEC");

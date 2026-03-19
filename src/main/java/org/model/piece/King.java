@@ -21,7 +21,7 @@ public class King extends Piece {
         Plateau plateau = findPlateau();
         if (plateau == null) return res;
 
-        // Normal king moves (one square in any direction)
+        //Mouvement de Roi
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) continue;
@@ -32,10 +32,8 @@ public class King extends Piece {
             }
         }
 
-        // Castling: only when king is at its initial position (col 4, initial row)
         int initialRow = blanc ? 7 : 0;
         if (x == initialRow && y == 4) {
-            // Kingside: col 5 and 6 must be empty, allied Rook at col 7
             Case sq5 = plateau.getCase(x, 5);
             Case sq6 = plateau.getCase(x, 6);
             Case sq7 = plateau.getCase(x, 7);
@@ -45,7 +43,7 @@ public class King extends Piece {
                     && sq7.getPiece().isBlanc() == this.blanc) {
                 res.add(sq6);
             }
-            // Queenside: col 1, 2, 3 must be empty, allied Rook at col 0
+
             Case sq3 = plateau.getCase(x, 3);
             Case sq2 = plateau.getCase(x, 2);
             Case sq1 = plateau.getCase(x, 1);

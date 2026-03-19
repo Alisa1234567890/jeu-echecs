@@ -18,7 +18,7 @@ public class MF extends JFrame implements Observer {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(600, 600);
         setLayout(new BorderLayout());
-        statusLabel = new JLabel("MF initialized", SwingConstants.CENTER);
+        statusLabel = new JLabel("MF initialisé", SwingConstants.CENTER);
         add(statusLabel, BorderLayout.NORTH);
         boardHolder = new JPanel(new BorderLayout());
         add(boardHolder, BorderLayout.CENTER);
@@ -38,7 +38,7 @@ public class MF extends JFrame implements Observer {
     @Override
     public void update(Observable o, Object arg) {
         SwingUtilities.invokeLater(() -> {
-            String msg = "Update received";
+            String msg = "Update rereçu";
             if (arg != null) {
                 String argStr = arg.toString();
                 if (argStr.contains("ÉCHEC ET MAT")) {

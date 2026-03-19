@@ -8,7 +8,6 @@ public class Plateau {
 
     private final int size = 8;
     private final Case[][] cases;
-    /** Square the capturing pawn lands on during en passant. Set after every double-pawn push. */
     private Case enPassantTarget = null;
 
     public Case getEnPassantTarget() { return enPassantTarget; }
