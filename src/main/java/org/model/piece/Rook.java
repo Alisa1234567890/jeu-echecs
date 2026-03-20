@@ -14,7 +14,7 @@ public class Rook extends Piece {
     }
 
     @Override
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         Plateau p = PlateauSingleton.INSTANCE;
         DecorateurCasesEnLigne d = new DecorateurCasesEnLigne(p);
         return d.getAccessibleCases(this);

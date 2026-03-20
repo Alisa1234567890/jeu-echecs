@@ -19,16 +19,20 @@ public abstract class DecorateurCasesAccessibles {
         this.base = base;
     }
 
-    public ArrayList<Case> getAccessibleCases(Piece piece) {
+    public ArrayList<Case> getCasesAccessibles(Piece piece) {
         ArrayList<Case> res = getMesCasesAccessibles(piece);
         if (res == null) res = new ArrayList<>();
         if (base != null) {
-            ArrayList<Case> baseList = base.getAccessibleCases(piece);
+            ArrayList<Case> baseList = base.getCasesAccessibles(piece);
             if (baseList != null && !baseList.isEmpty()) {
                 res.addAll(baseList);
             }
         }
         return res;
+    }
+
+    public ArrayList<Case> getAccessibleCases(Piece piece) {
+        return getCasesAccessibles(piece);
     }
 
     protected abstract ArrayList<Case> getMesCasesAccessibles(Piece piece);

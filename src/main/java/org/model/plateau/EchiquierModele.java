@@ -11,9 +11,9 @@ public class EchiquierModele {
 
     private Piece[][] board;
 
-    private final Color couleurClair = new Color(240, 217, 181);
-    private final Color couleurFonce = new Color(181, 136, 99);
-    private final Color couleurSurvol = Color.YELLOW;
+    private final Color couleurClair = new Color(220, 234, 248);
+    private final Color couleurFonce = new Color(88, 123, 168);
+    private final Color couleurSurvol = new Color(133, 194, 255);
 
     public EchiquierModele() {
         board = new Piece[8][8];

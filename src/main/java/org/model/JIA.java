@@ -13,6 +13,10 @@ public class JIA extends Joueur {
         this.difficulty = difficulty;
     }
 
+    public JIA(Jeu jeu, boolean blanc, Jeu.Difficulty difficulty) {
+        this(jeu, blanc, blanc ? "White AI" : "Black AI", difficulty);
+    }
+
     @Override
     public Coup getCoup() {
         try {

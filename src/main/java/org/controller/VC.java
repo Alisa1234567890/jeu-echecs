@@ -20,14 +20,10 @@ import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.IllegalComponentStateException;
 import java.awt.Image;
 import java.awt.Point;
-import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
@@ -51,8 +47,8 @@ public class VC extends JFrame implements JeuObserver {
     private Point dragOffset;
     private AWTEventListener globalMouseListener;
 
-    private final Color beige = new Color(240, 217, 181);
-    private final Color marron = new Color(181, 136, 99);
+    private final Color beige = new Color(220, 234, 248);
+    private final Color marron = new Color(88, 123, 168);
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
@@ -122,7 +118,7 @@ public class VC extends JFrame implements JeuObserver {
                     @Override
                     public void mouseEntered(MouseEvent e) {
                         if (!isHighlighted(ligne, colonne)) {
-                            casePanel.setBackground(Color.RED);
+                            casePanel.setBackground(new Color(162, 207, 255));
                         }
                     }
 
@@ -191,8 +187,9 @@ public class VC extends JFrame implements JeuObserver {
                 }
 
                 String resourcePath = resolvePieceResource(piece);
-                label.setIcon(createSafeIcon(piece, resourcePath, iconSize));
-                label.setText("");
+                Icon icon = createSafeIcon(resourcePath, iconSize);
+                label.setIcon(icon);
+                label.setText(icon == null ? getFallbackText(piece) : "");
             }
         }
 
@@ -206,20 +203,7 @@ public class VC extends JFrame implements JeuObserver {
 
     private void updateHighlights(int row, int col) {
         highlightedMoves.clear();
-        Piece piece = jeu.getEchiquier().getPiece(row, col);
-        if (piece == null) {
-            return;
-        }
-
-        for (Case target : piece.getCaseAccessible()) {
-            if (target == null) {
-                continue;
-            }
-            Coup coup = new Coup(new Point(row, col), new Point(target.getX(), target.getY()));
-            if (jeu.isMoveAllowedForCurrentTurn(coup)) {
-                highlightedMoves.add(new Point(target.getX(), target.getY()));
-            }
-        }
+        highlightedMoves.addAll(jeu.getLegalDestinations(row, col));
     }
 
     private boolean isHighlighted(int row, int col) {
@@ -259,7 +243,7 @@ public class VC extends JFrame implements JeuObserver {
         return null;
     }
 
-    private Icon createSafeIcon(Piece piece, String resourcePath, int size) {
+    private Icon createSafeIcon(String resourcePath, int size) {
         if (resourcePath != null) {
             try {
                 if (resourcePath.toLowerCase().endsWith(".svg")) {
@@ -284,27 +268,12 @@ public class VC extends JFrame implements JeuObserver {
             } catch (Exception ignored) {
             }
         }
+        return null;
+    }
 
-        String initial = piece.getClass().getSimpleName();
-        initial = (initial == null || initial.isEmpty()) ? "?" : initial.substring(0, 1).toUpperCase();
-        BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = bi.createGraphics();
-        try {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(new Color(0, 0, 0, 0));
-            g.fillRect(0, 0, size, size);
-            g.setColor(piece.isBlanc() ? new Color(255, 255, 255, 230) : new Color(60, 60, 60, 230));
-            g.fillOval(2, 2, size - 4, size - 4);
-            g.setColor(piece.isBlanc() ? marron : beige);
-            g.setFont(new Font("SansSerif", Font.BOLD, Math.max(12, size / 2)));
-            FontMetrics fm = g.getFontMetrics();
-            int tx = (size - fm.stringWidth(initial)) / 2;
-            int ty = (size - fm.getHeight()) / 2 + fm.getAscent();
-            g.drawString(initial, tx, ty);
-        } finally {
-            g.dispose();
-        }
-        return new ImageIcon(bi);
+    private String getFallbackText(Piece piece) {
+        String simpleName = piece.getClass().getSimpleName();
+        return (simpleName == null || simpleName.isEmpty()) ? "?" : simpleName.substring(0, 1).toUpperCase();
     }
 
     private void handleGlobalMouseReleased(MouseEvent me) {

@@ -12,7 +12,7 @@ public class King extends Piece {
         super(color);
     }
 
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         ArrayList<Case> res = new ArrayList<>();
         if (position == null) return res;
 

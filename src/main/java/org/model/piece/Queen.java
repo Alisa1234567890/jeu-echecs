@@ -15,7 +15,7 @@ public class Queen extends Piece {
                 new DecorateurCasesEnDiagonale(PlateauSingleton.INSTANCE)));
     }
 
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         ArrayList<Case> res = new ArrayList<>();
         if (position == null) return res;
         int x = position.getX();

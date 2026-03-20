@@ -48,11 +48,15 @@ public class Piece {
         return color;
     }
 
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         if (decor != null) {
-            return decor.getAccessibleCases(this);
+            return decor.getCasesAccessibles(this);
         }
         return new ArrayList<>();
+    }
+
+    public ArrayList<Case> getCaseAccessible() {
+        return getCasesAccessibles();
     }
 
     public boolean isValidMove(int startRow, int startCol,

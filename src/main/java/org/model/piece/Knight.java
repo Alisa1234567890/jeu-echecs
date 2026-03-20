@@ -13,7 +13,7 @@ public class Knight extends Piece {
     }
 
     @Override
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         ArrayList<Case> res = new ArrayList<>();
         if (position == null) return res;
 

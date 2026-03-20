@@ -14,7 +14,7 @@ public class Bishop extends Piece {
     }
 
     @Override
-    public ArrayList<Case> getCaseAccessible() {
+    public ArrayList<Case> getCasesAccessibles() {
         Plateau p = PlateauSingleton.INSTANCE;
         DecorateurCasesEnDiagonale d = new DecorateurCasesEnDiagonale(p);
         return d.getAccessibleCases(this);
