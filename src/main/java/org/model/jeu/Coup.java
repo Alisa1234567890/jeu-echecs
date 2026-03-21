@@ -1,4 +1,4 @@
-package org.model;
+package org.model.jeu;
 
 import java.awt.Point;
 

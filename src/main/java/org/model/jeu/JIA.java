@@ -1,17 +1,17 @@
-package org.model;
+package org.model.jeu;
 
-public class JHumain extends Joueur {
+public class JIA extends Joueur {
 
     private boolean blanc;
 
-    public JHumain(Jeu jeu, boolean blanc) {
+    public JIA(Jeu jeu, boolean blanc) {
         super(jeu);
         this.blanc = blanc;
     }
 
     @Override
     public Coup getCoup() {
-        return jeu.attendreCoup();
+        return null;
     }
 
     @Override

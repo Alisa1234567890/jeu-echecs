@@ -1,7 +1,7 @@
 package org.model.plateau;
 
 import org.model.piece.*;
-import org.model.Joueur;
+import org.model.jeu.Joueur;
 
 import java.awt.Color;
 import java.util.ArrayList;

@@ -1,7 +1,8 @@
-package org.model;
+package org.model.jeu;
 
 import java.util.List;
 import java.awt.Point;
+
 import org.model.piece.Piece;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;

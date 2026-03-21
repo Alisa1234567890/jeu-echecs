@@ -1,8 +1,8 @@
-package org.controller;
+package org.view;
 
-import org.model.Coup;
-import org.model.Jeu;
-import org.model.Joueur;
+import org.model.jeu.Coup;
+import org.model.jeu.Jeu;
+import org.model.jeu.Joueur;
 import org.model.piece.Piece;
 import org.tools.SvgToPngConverter;
 
@@ -13,7 +13,7 @@ import java.io.InputStream;
 import java.util.Observable;
 import java.util.Observer;
 
-public class VC extends JFrame implements Observer {
+public class VuePlateau extends JFrame implements Observer {
 
     private final Jeu jeu;
 
@@ -26,7 +26,7 @@ public class VC extends JFrame implements Observer {
     final Color MARRON    = new Color(181, 136, 99);
     final Color HIGHLIGHT = new Color(100, 200, 100);
 
-    public VC(Jeu jeu) {
+    public VuePlateau(Jeu jeu) {
         this.jeu = jeu;
 
         setTitle("Jeu d'échecs");

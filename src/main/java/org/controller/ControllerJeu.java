@@ -1,9 +1,10 @@
 package org.controller;
 
-import org.model.Coup;
-import org.model.Jeu;
+import org.model.jeu.Coup;
+import org.model.jeu.Jeu;
 import org.model.piece.Piece;
 import org.model.plateau.Case;
+import org.view.VuePlateau;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,10 +15,10 @@ import java.util.Observable;
 import java.util.Observer;
 
 
-public class MF extends JFrame implements Observer {
+public class ControllerJeu extends JFrame implements Observer {
 
     private Jeu  jeu;
-    private VC   vue;
+    private VuePlateau vue;
 
     private Point pointDepart;
     private JPanel jPanel;
@@ -30,7 +31,7 @@ public class MF extends JFrame implements Observer {
     private JLabel jLabel;
     private JPanel jPanelBordures;
 
-    public MF() {
+    public ControllerJeu() {
         super("Jeu d'Échecs");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(700, 750);
@@ -48,7 +49,7 @@ public class MF extends JFrame implements Observer {
         this.jeu = j;
     }
 
-    public void initVC(VC vc) {
+    public void initVC(VuePlateau vc) {
         this.vue = vc;
 
         jPanelBordures.removeAll();

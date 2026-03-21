@@ -1,8 +1,8 @@
 package org.view;
 
-import org.model.Coup;
-import org.model.Jeu;
-import org.model.Joueur;
+import org.model.jeu.Coup;
+import org.model.jeu.Jeu;
+import org.model.jeu.Joueur;
 import org.model.piece.*;
 import org.model.plateau.EchiquierModele;
 
