@@ -8,6 +8,12 @@ public class Coup {
     public Point arr;
     private String type = "NORMAL"; // Type de coup
 
+    // Champs pour la notation PGN (SAN)
+    private String pieceName    = "";   // ex. "Pawn", "Knight", "King"…
+    private boolean capture     = false;
+    private String disambiguation = ""; // "", "a", "3", "a3"
+    private String promotionTo  = "Q"; // toujours Reine pour l'instant
+
     public Coup(Point dep, Point arr) {
         this.dep = dep;
         this.arr = arr;
@@ -19,15 +25,20 @@ public class Coup {
         this.type = type;
     }
 
+    public void setType(String type)                  { this.type = type; }
+    public String getType()                           { return type; }
 
-    public void setType(String type) {
-        this.type = type;
-    }
+    public void setPieceName(String pieceName)        { this.pieceName = pieceName; }
+    public String getPieceName()                      { return pieceName; }
 
+    public void setCapture(boolean capture)           { this.capture = capture; }
+    public boolean isCapture()                        { return capture; }
 
-    public String getType() {
-        return type;
-    }
+    public void setDisambiguation(String disambiguation) { this.disambiguation = disambiguation; }
+    public String getDisambiguation()                 { return disambiguation; }
+
+    public void setPromotionTo(String promotionTo)    { this.promotionTo = promotionTo; }
+    public String getPromotionTo()                    { return promotionTo; }
 
 
     @Override

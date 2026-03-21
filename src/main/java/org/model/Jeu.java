@@ -5,7 +5,9 @@ import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 
@@ -20,16 +22,20 @@ public class Jeu extends Observable implements Runnable {
 
     private EchiquierModele echiquier;
     private Coup dernierCoup;
+    // Enregistreur PGN
+    private PgnRecorder pgnRecorder = new PgnRecorder("Blanc", "Noir");
     // Historique des positions pour détecter la répétition (clef = position de jeu)
     private final Map<String, Integer> positionHistory = new HashMap<>();
+    // Référence au thread de jeu courant (pour pouvoir l'arrêter lors d'une nouvelle partie)
+    private Thread gameThread;
     // true uniquement quand le jeu est bloqué dans attendreCoup()
     private volatile boolean attenteCoup = false;
 
     public Jeu() {
         echiquier = new EchiquierModele();
-        joueur1 = new JHumain(this, true);   // Joueur blanc
-        joueur2 = new JHumain(this, false);  // Joueur noir
-        joueurCourant = joueur1;             // Blanc joue en premier
+        joueur1 = new JHumain(this, true);
+        joueur2 = new JHumain(this, false);
+        joueurCourant = joueur1;
         Plateau p = PlateauSingleton.INSTANCE;
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
@@ -37,7 +43,8 @@ public class Jeu extends Observable implements Runnable {
                 p.getCase(r, c).setPiece(piece);
             }
         }
-        new Thread(this, "Jeu-Thread").start();
+        gameThread = new Thread(this, "Jeu-Thread");
+        gameThread.start();
         // Enregistrer la position initiale
         enregistrerPosition();
     }
@@ -63,11 +70,22 @@ public class Jeu extends Observable implements Runnable {
 
             Joueur joueurSuivant = (joueurCourant == joueur1) ? joueur2 : joueur1;
 
-            if (estEchecEtMat(joueurSuivant)) {
+            // Calculer mat/pat/échec directement depuis l'état du jeu,
+            // indépendamment de c.getType() (qui peut être "PROMOTION", "ROQUE", etc.)
+            boolean isEchec = joueurSuivant.estEnEchec();
+            boolean isMat   = isEchec && !joueurSuivant.aDesCoupsLegaux();
+
+            // ── Enregistrement PGN ──────────────────────────────────────────
+            pgnRecorder.enregistrerCoup(c, joueurCourant.isBlanc(),
+                    isEchec && !isMat, isMat);
+
+            if (isMat) {
                 String gagnant = joueurCourant.isBlanc() ? "Blanc" : "Noir";
                 System.out.println("RÉSULTAT: ÉCHEC ET MAT! Gagnant: " + gagnant);
                 if (nextC != null) nextC.setType("ECHEC ET MAT");
                 termine = true;
+                pgnRecorder.setResult(joueurCourant.isBlanc() ? "1-0" : "0-1");
+                sauvegardePgn();
                 setChanged();
                 notifyObservers("ÉCHEC ET MAT - Gagnant: " + gagnant);
                 break;
@@ -77,6 +95,8 @@ public class Jeu extends Observable implements Runnable {
                 System.out.println("RÉSULTAT: PAT!");
                 if (nextC != null) nextC.setType("PAT");
                 termine = true;
+                pgnRecorder.setResult("1/2-1/2");
+                sauvegardePgn();
                 setChanged();
                 notifyObservers("PAT - Match Nul");
                 break;
@@ -92,6 +112,8 @@ public class Jeu extends Observable implements Runnable {
                 System.out.println("RÉSULTAT: NULLE PAR RÉPÉTITION!");
                 if (nextC != null) nextC.setType("RÉPÉTITION");
                 termine = true;
+                pgnRecorder.setResult("1/2-1/2");
+                sauvegardePgn();
                 setChanged();
                 notifyObservers("NULLE - Répétition de position (3 fois)");
                 break;
@@ -170,6 +192,15 @@ public class Jeu extends Observable implements Runnable {
                 }
             }
 
+            // ── Métadonnées PGN — collectées AVANT le déplacement ───────────
+            c.setPieceName(piece.getClass().getSimpleName());
+            c.setCapture(captured != null || isEnPassant);
+            if (!("Pawn".equals(piece.getClass().getSimpleName()))
+                    && !("King".equals(piece.getClass().getSimpleName()))) {
+                c.setDisambiguation(computeDisambiguation(plateau, piece, c.arr));
+            }
+            // ────────────────────────────────────────────────────────────────
+
             boolean ok = plateau.deplacer(c.dep, c.arr);
             if (!ok) {
                 System.out.println("MISE A JOUR: deplacement non autorise");
@@ -217,6 +248,7 @@ public class Jeu extends Observable implements Runnable {
                     Piece newQueen = new Queen(piece.getColor());
                     plateau.getCase(c.arr).setPiece(newQueen);
                     c.setType("PROMOTION");
+                    c.setPromotionTo("Q");
                     System.out.println("MISE A JOUR: PROMOTION — Pion -> Reine");
                 }
             }
@@ -298,6 +330,127 @@ public class Jeu extends Observable implements Runnable {
 
     public Joueur getJoueurCourant() {
         return joueurCourant;
+    }
+
+    /** Retourne l'enregistreur PGN (pour la sauvegarde manuelle depuis l'UI). */
+    public PgnRecorder getPgnRecorder() {
+        return pgnRecorder;
+    }
+
+    /**
+     * Réinitialise la partie sans relancer l'application.
+     * Arrête le thread courant, remet le plateau à zéro et lance un nouveau thread.
+     */
+    public void nouvellePartie() {
+        // 1. Signaler au thread courant de s'arrêter
+        Thread old = gameThread;
+        synchronized (this) {
+            termine = true;
+            nextC = null;
+            notifyAll(); // Débloquer attendreCoup() s'il est en attente
+        }
+
+        // 2. Attendre que l'ancien thread soit bien terminé (max 2 s)
+        if (old != null && old.isAlive()) {
+            try { old.join(2000); } catch (InterruptedException ignored) {}
+        }
+
+        // 3. Réinitialiser tout l'état du jeu
+        synchronized (this) {
+            echiquier = new EchiquierModele();
+            Plateau p = PlateauSingleton.INSTANCE;
+            for (int r = 0; r < 8; r++) {
+                for (int c = 0; c < 8; c++) {
+                    p.getCase(r, c).setPiece(echiquier.getPiece(r, c));
+                }
+            }
+            p.setEnPassantTarget(null);
+
+            joueur1 = new JHumain(this, true);
+            joueur2 = new JHumain(this, false);
+            joueurCourant = joueur1;
+            dernierCoup = null;
+            nextC = null;
+            attenteCoup = false;
+            termine = false;
+
+            positionHistory.clear();
+            pgnRecorder = new PgnRecorder("Blanc", "Noir");
+        }
+
+        // 4. Enregistrer la position initiale et redessiner
+        enregistrerPosition();
+        setChanged();
+        notifyObservers(null); // Déclenche redraw + "Tour : BLANCS" dans VC
+
+        // 5. Lancer un nouveau thread de jeu
+        gameThread = new Thread(this, "Jeu-Thread");
+        gameThread.start();
+        System.out.println("Nouvelle partie lancée.");
+    }
+
+    /**
+     * Sauvegarde la partie au format PGN dans le dossier personnel de l'utilisateur.
+     * Fichier : ~/partie_echecs.pgn
+     */
+    public void sauvegardePgn() {
+        String path = System.getProperty("user.home") + "/partie_echecs.pgn";
+        pgnRecorder.sauvegarder(path);
+    }
+
+    /**
+     * Calcule la désambiguïsation SAN pour une pièce qui va se déplacer en {@code arr}.
+     * Vérifie s'il existe une autre pièce du même type et couleur pouvant également
+     * atteindre cette case.
+     */
+    private String computeDisambiguation(Plateau plateau, Piece piece, java.awt.Point arr) {
+        List<Piece> ambiguous = new ArrayList<>();
+        for (int r = 0; r < 8; r++) {
+            for (int col = 0; col < 8; col++) {
+                org.model.plateau.Case cas = plateau.getCase(r, col);
+                if (cas == null) continue;
+                Piece other = cas.getPiece();
+                if (other == null || other == piece) continue;
+                if (other.getClass() != piece.getClass()) continue;
+                if (other.isBlanc() != piece.isBlanc()) continue;
+                // Est-ce que cette pièce peut atteindre `arr` ?
+                for (org.model.plateau.Case accessible : other.getCaseAccessible()) {
+                    if (accessible != null
+                            && accessible.getX() == arr.x
+                            && accessible.getY() == arr.y) {
+                        ambiguous.add(other);
+                        break;
+                    }
+                }
+            }
+        }
+        if (ambiguous.isEmpty()) return "";
+
+        int depFile = piece.getCase().getY();
+        int depRank = piece.getCase().getX();
+
+        // La colonne (file) suffit-elle à distinguer la pièce ?
+        boolean fileCollision = false;
+        for (Piece a : ambiguous) {
+            if (a.getCase() != null && a.getCase().getY() == depFile) {
+                fileCollision = true;
+                break;
+            }
+        }
+        if (!fileCollision) return String.valueOf((char) ('a' + depFile));
+
+        // Le rang (rank) suffit-il ?
+        boolean rankCollision = false;
+        for (Piece a : ambiguous) {
+            if (a.getCase() != null && a.getCase().getX() == depRank) {
+                rankCollision = true;
+                break;
+            }
+        }
+        if (!rankCollision) return String.valueOf(8 - depRank);
+
+        // Les deux sont nécessaires
+        return String.valueOf((char) ('a' + depFile)) + (8 - depRank);
     }
 
     /**

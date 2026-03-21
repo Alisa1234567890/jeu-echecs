@@ -40,6 +40,22 @@ public class VC extends JFrame implements Observer {
         setSize(650, 680);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        // ── Barre de menu ──────────────────────────────────────────────────
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menuPartie = new JMenu("Partie");
+        JMenuItem newGameItem = new JMenuItem("Nouvelle partie");
+        newGameItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
+                java.awt.event.KeyEvent.VK_N,
+                java.awt.event.InputEvent.META_DOWN_MASK)); // Cmd+N sur Mac
+        newGameItem.addActionListener(e ->
+                // Exécuté hors de l'EDT pour ne pas bloquer l'interface
+                new Thread(jeu::nouvellePartie, "Reset-Thread").start()
+        );
+        menuPartie.add(newGameItem);
+        menuBar.add(menuPartie);
+        setJMenuBar(menuBar);
+        // ───────────────────────────────────────────────────────────────────
+
         panel = new JPanel(new BorderLayout());
 
         JPanel chessBoard = new JPanel(new GridLayout(8, 8));
@@ -201,6 +217,8 @@ public class VC extends JFrame implements Observer {
         JLabel spacer = new JLabel("   ");
         southContainer.add(spacer, BorderLayout.WEST);
         southContainer.add(colPanel, BorderLayout.CENTER);
+
+
 
         // Status bar
         statusLabel = new JLabel("Tour : BLANCS", SwingConstants.CENTER);
@@ -370,11 +388,26 @@ public class VC extends JFrame implements Observer {
         SwingUtilities.invokeLater(() -> {
             redraw();
             if (arg instanceof String) {
-                // End-of-game message
+                // Message de fin de partie
                 String msg = (String) arg;
                 statusLabel.setForeground(Color.RED);
                 statusLabel.setText(msg);
-                JOptionPane.showMessageDialog(this, msg, "Fin de partie", JOptionPane.INFORMATION_MESSAGE);
+
+                int choice = JOptionPane.showOptionDialog(
+                        this,
+                        msg + "\n\nVoulez-vous jouer une nouvelle partie ?",
+                        "Fin de partie",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE,
+                        null,
+                        new String[]{"Nouvelle partie", "Quitter"},
+                        "Nouvelle partie"
+                );
+                if (choice == 0) {
+                    new Thread(jeu::nouvellePartie, "Reset-Thread").start();
+                } else if (choice == 1 || choice == JOptionPane.CLOSED_OPTION) {
+                    System.exit(0);
+                }
             } else if (arg instanceof Coup) {
                 Coup c = (Coup) arg;
                 String type = c.getType();
