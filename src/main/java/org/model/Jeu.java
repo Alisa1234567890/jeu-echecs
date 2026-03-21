@@ -4,6 +4,7 @@ import org.model.piece.*;
 import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
+import org.tools.PgnRecorder;
 
 import java.util.ArrayList;
 import java.util.HashMap;

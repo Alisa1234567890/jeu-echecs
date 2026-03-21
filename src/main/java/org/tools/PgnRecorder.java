@@ -1,7 +1,8 @@
-package org.model;
+package org.tools;
+
+import org.model.Coup;
 
 import java.awt.Point;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;

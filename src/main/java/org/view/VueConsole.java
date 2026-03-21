@@ -3,7 +3,7 @@ package org.view;
 import org.model.Coup;
 import org.model.Jeu;
 import org.model.Joueur;
-import org.model.PgnRecorder;
+import org.tools.PgnRecorder;
 import org.model.piece.*;
 import org.model.plateau.EchiquierModele;
 
