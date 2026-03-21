@@ -6,9 +6,9 @@ import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class Knight extends Piece {
+public class Cavalier extends Piece {
 
-    public Knight(String color) {
+    public Cavalier(String color) {
         super(color);
     }
 
@@ -30,24 +30,12 @@ public class Knight extends Piece {
         for (int[] s : sauts) {
             Case c = plateau.getCase(x + s[0], y + s[1]);
             if (c != null) {
-                // Case vide OU pièce ennemie
                 if (c.isEmpty() || c.getPiece().isBlanc() != this.isBlanc()) {
                     res.add(c);
                 }
             }
         }
         return res;
-    }
-
-    @Override
-    public boolean isValidMove(int startRow, int startCol,
-                               int endRow, int endCol) {
-
-        int rowDiff = Math.abs(endRow - startRow);
-        int colDiff = Math.abs(endCol - startCol);
-
-        return (rowDiff == 2 && colDiff == 1) ||
-                (rowDiff == 1 && colDiff == 2);
     }
 
     @Override

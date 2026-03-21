@@ -8,21 +8,14 @@ public class Coup {
     public Point arr;
     private String type = "NORMAL"; // Type de coup
 
-    // Champs pour la notation PGN (SAN)
-    private String pieceName    = "";   // ex. "Pawn", "Knight", "King"…
+    private String pieceName    = "";
     private boolean capture     = false;
-    private String disambiguation = ""; // "", "a", "3", "a3"
-    private String promotionTo  = "Q"; // toujours Reine pour l'instant
+    private String disambiguation = "";
+    private String promotionTo  = "Q";
 
     public Coup(Point dep, Point arr) {
         this.dep = dep;
         this.arr = arr;
-    }
-
-    public Coup(Point dep, Point arr, String type) {
-        this.dep = dep;
-        this.arr = arr;
-        this.type = type;
     }
 
     public void setType(String type)                  { this.type = type; }

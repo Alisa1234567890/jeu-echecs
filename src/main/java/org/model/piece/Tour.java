@@ -7,9 +7,9 @@ import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class Rook extends Piece {
+public class Tour extends Piece {
 
-    public Rook(String color) {
+    public Tour(String color) {
         super(color);
     }
 
@@ -18,12 +18,6 @@ public class Rook extends Piece {
         Plateau p = PlateauSingleton.INSTANCE;
         DecorateurCasesEnLigne d = new DecorateurCasesEnLigne(p);
         return d.getAccessibleCases(this);
-    }
-
-    @Override
-    public boolean isValidMove(int startRow, int startCol,
-                               int endRow, int endCol) {
-        return startRow == endRow || startCol == endCol;
     }
 
     @Override

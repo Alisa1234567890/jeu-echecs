@@ -6,9 +6,9 @@ import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class King extends Piece {
+public class Roi extends Piece {
 
-    public King(String color) {
+    public Roi(String color) {
         super(color);
     }
 
@@ -39,7 +39,7 @@ public class King extends Piece {
             Case sq7 = plateau.getCase(x, 7);
             if (sq5 != null && sq5.isEmpty()
                     && sq6 != null && sq6.isEmpty()
-                    && sq7 != null && sq7.getPiece() instanceof Rook
+                    && sq7 != null && sq7.getPiece() instanceof Tour
                     && sq7.getPiece().isBlanc() == this.blanc) {
                 res.add(sq6);
             }
@@ -51,7 +51,7 @@ public class King extends Piece {
             if (sq3 != null && sq3.isEmpty()
                     && sq2 != null && sq2.isEmpty()
                     && sq1 != null && sq1.isEmpty()
-                    && sq0 != null && sq0.getPiece() instanceof Rook
+                    && sq0 != null && sq0.getPiece() instanceof Tour
                     && sq0.getPiece().isBlanc() == this.blanc) {
                 res.add(sq2);
             }

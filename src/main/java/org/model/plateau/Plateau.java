@@ -45,7 +45,6 @@ public class Plateau {
                 break;
             }
         }
-        // No isValidMove fallback – getCaseAccessible() is the single source of truth
         if (!allowed) return false;
         cDep.setPiece(null);
         cArr.setPiece(p);

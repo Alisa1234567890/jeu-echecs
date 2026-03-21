@@ -8,9 +8,9 @@ import org.model.plateau.DecorateurCasesEnDiagonale;
 
 import java.util.ArrayList;
 
-public class Queen extends Piece {
+public class Dame extends Piece {
 
-    public Queen(String color) {
+    public Dame(String color) {
         super(color, new DecorateurCasesEnLigne(PlateauSingleton.INSTANCE,
                 new DecorateurCasesEnDiagonale(PlateauSingleton.INSTANCE)));
     }

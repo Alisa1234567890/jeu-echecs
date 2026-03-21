@@ -23,30 +23,30 @@ public class EchiquierModele extends Observable {
 
     private void initialiserPieces() {
 
-        board[0][0] = new Rook("black");
-        board[0][1] = new Knight("black");
-        board[0][2] = new Bishop("black");
-        board[0][3] = new Queen("black");
-        board[0][4] = new King("black");
-        board[0][5] = new Bishop("black");
-        board[0][6] = new Knight("black");
-        board[0][7] = new Rook("black");
+        board[0][0] = new Tour("black");
+        board[0][1] = new Cavalier("black");
+        board[0][2] = new Fou("black");
+        board[0][3] = new Dame("black");
+        board[0][4] = new Roi("black");
+        board[0][5] = new Fou("black");
+        board[0][6] = new Cavalier("black");
+        board[0][7] = new Tour("black");
 
         for (int col = 0; col < 8; col++) {
-            board[1][col] = new Pawn("black");
+            board[1][col] = new Pion("black");
         }
 
-        board[7][0] = new Rook("white");
-        board[7][1] = new Knight("white");
-        board[7][2] = new Bishop("white");
-        board[7][3] = new Queen("white");
-        board[7][4] = new King("white");
-        board[7][5] = new Bishop("white");
-        board[7][6] = new Knight("white");
-        board[7][7] = new Rook("white");
+        board[7][0] = new Tour("white");
+        board[7][1] = new Cavalier("white");
+        board[7][2] = new Fou("white");
+        board[7][3] = new Dame("white");
+        board[7][4] = new Roi("white");
+        board[7][5] = new Fou("white");
+        board[7][6] = new Cavalier("white");
+        board[7][7] = new Tour("white");
 
         for (int col = 0; col < 8; col++) {
-            board[6][col] = new Pawn("white");
+            board[6][col] = new Pion("white");
         }
 
         setChanged();
@@ -79,20 +79,11 @@ public class EchiquierModele extends Observable {
         notifyObservers();
     }
 
-    public Color getCouleurCase(int ligne, int colonne) {
-        return (ligne + colonne) % 2 == 0 ? couleurClair : couleurFonce;
-    }
-
-    public Color getCouleurSurvol() {
-        return couleurSurvol;
-    }
-
-
     public Piece getRoi(Joueur joueur) {
         for (int row = 0; row < board.length; row++) {
             for (int col = 0; col < board[row].length; col++) {
                 Piece piece = board[row][col];
-                if (piece instanceof King && piece.isBlanc() == joueur.isBlanc()) {
+                if (piece instanceof Roi && piece.isBlanc() == joueur.isBlanc()) {
                     return piece;
                 }
             }

@@ -7,9 +7,9 @@ import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class Bishop extends Piece {
+public class Fou extends Piece {
 
-    public Bishop(String color) {
+    public Fou(String color) {
         super(color);
     }
 
@@ -20,13 +20,6 @@ public class Bishop extends Piece {
         return d.getAccessibleCases(this);
     }
 
-    @Override
-    public boolean isValidMove(int startRow, int startCol,
-                               int endRow, int endCol) {
-
-        return Math.abs(endRow - startRow) ==
-                Math.abs(endCol - startCol);
-    }
 
     @Override
     public String getImageName() {

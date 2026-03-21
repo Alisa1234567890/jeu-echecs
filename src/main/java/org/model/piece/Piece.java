@@ -55,22 +55,16 @@ public class Piece {
         return new ArrayList<>();
     }
 
-    public boolean isValidMove(int startRow, int startCol,
-                               int endRow, int endCol) {
-        return false;
-    }
-
-
     public String getImageName() {
         String cls = this.getClass().getSimpleName();
         String code = "?";
         switch (cls) {
-            case "Pawn": code = "P"; break;
-            case "Rook": code = "R"; break;
-            case "Knight": code = "N"; break;
-            case "Bishop": code = "B"; break;
-            case "Queen": code = "Q"; break;
-            case "King": code = "K"; break;
+            case "Pion":     code = "P"; break;
+            case "Tour":     code = "R"; break;
+            case "Cavalier": code = "N"; break;
+            case "Fou":      code = "B"; break;
+            case "Dame":     code = "Q"; break;
+            case "Roi":      code = "K"; break;
             default: code = "?"; break;
         }
         String prefix = isBlanc() ? "w" : "b";

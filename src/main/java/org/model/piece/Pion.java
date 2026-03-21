@@ -6,9 +6,9 @@ import org.model.plateau.PlateauSingleton;
 
 import java.util.ArrayList;
 
-public class Pawn extends Piece {
+public class Pion extends Piece {
 
-    public Pawn(String color) {
+    public Pion(String color) {
         super(color);
     }
 
@@ -62,25 +62,6 @@ public class Pawn extends Piece {
         }
 
         return res;
-    }
-
-    @Override
-    public boolean isValidMove(int startRow, int startCol,
-                               int endRow, int endCol) {
-
-        int direction = getColor().equals("white") ? -1 : 1;
-
-        if (startCol == endCol && endRow == startRow + direction) {
-            return true;
-        }
-
-        if (startCol == endCol &&
-                ((getColor().equals("white") && startRow == 6 && endRow == 4) ||
-                        (getColor().equals("black") && startRow == 1 && endRow == 3))) {
-            return true;
-        }
-
-        return false;
     }
 
     @Override

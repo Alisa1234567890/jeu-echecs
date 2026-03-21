@@ -13,33 +13,18 @@ import java.io.InputStream;
 import java.util.Observable;
 import java.util.Observer;
 
-/**
- * VUE — responsabilités strictes MVC :
- *   • (4) Reçoit les notifications du Modèle via update()
- *   • (5) Consulte le Modèle (jeu.getEchiquier()) pour mettre à jour l'affichage
- *
- * La Vue n'écoute aucun événement Swing, ne modifie pas le Modèle et
- * n'appelle aucune méthode de traitement (setCoup, nouvellePartie…).
- * Elle expose des méthodes que le Contrôleur peut appeler pour des
- * effets locaux directs (étape 2 : surlignage, bordures, hover).
- */
 public class VC extends JFrame implements Observer {
 
-    // ── Référence au Modèle (lecture seule dans redraw) ──────────────────────
     private final Jeu jeu;
 
-    // ── Composants Swing ─────────────────────────────────────────────────────
     private JPanel panel;
-    private JLabel statusLabel;
+    private JLabel label;
     private final JPanel[][] casePanels = new JPanel[8][8];
     private final JLabel[][] caseLabels = new JLabel[8][8];
 
-    // ── Couleurs (accessibles par le Contrôleur pour les effets locaux) ───────
     final Color BEIGE     = new Color(240, 217, 181);
     final Color MARRON    = new Color(181, 136, 99);
     final Color HIGHLIGHT = new Color(100, 200, 100);
-
-    // ─────────────────────────────────────────────────────────────────────────
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
@@ -49,9 +34,8 @@ public class VC extends JFrame implements Observer {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         panel = new JPanel(new BorderLayout());
-        JPanel chessBoard = new JPanel(new GridLayout(8, 8));
+        JPanel echiquier = new JPanel(new GridLayout(8, 8));
 
-        // Construire la grille — AUCUN MouseListener ici (rôle du Contrôleur)
         for (int l = 0; l < 8; l++) {
             for (int c = 0; c < 8; c++) {
                 JPanel casePanel = new JPanel(new BorderLayout());
@@ -59,16 +43,15 @@ public class VC extends JFrame implements Observer {
                 JLabel label = new JLabel("", SwingConstants.CENTER);
                 caseLabels[l][c] = label;
                 casePanel.add(label, BorderLayout.CENTER);
-                chessBoard.add(casePanel);
+                echiquier.add(casePanel);
             }
         }
 
-        // Étiquettes de colonnes et de rangées
-        JPanel rowPanel = new JPanel(new GridLayout(8, 1));
+        JPanel lignesPanel = new JPanel(new GridLayout(8, 1));
         for (int i = 8; i >= 1; i--) {
             JLabel lbl = new JLabel(" " + i + " ", SwingConstants.CENTER);
             lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
-            rowPanel.add(lbl);
+            lignesPanel.add(lbl);
         }
         JPanel colPanel = new JPanel(new GridLayout(1, 8));
         for (char c = 'a'; c <= 'h'; c++) {
@@ -76,113 +59,89 @@ public class VC extends JFrame implements Observer {
             lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
             colPanel.add(lbl);
         }
-        JPanel southContainer = new JPanel(new BorderLayout());
-        southContainer.add(new JLabel("   "), BorderLayout.WEST);
-        southContainer.add(colPanel, BorderLayout.CENTER);
+        JPanel conteneur = new JPanel(new BorderLayout());
+        conteneur.add(new JLabel("   "), BorderLayout.WEST);
+        conteneur.add(colPanel, BorderLayout.CENTER);
 
-        // Barre de statut
-        statusLabel = new JLabel("Tour : BLANCS", SwingConstants.CENTER);
-        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+        label = new JLabel("Tour : BLANCS", SwingConstants.CENTER);
+        label.setFont(new Font("SansSerif", Font.BOLD, 14));
+        label.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
 
-        panel.add(statusLabel, BorderLayout.NORTH);
-        panel.add(rowPanel, BorderLayout.WEST);
-        panel.add(chessBoard, BorderLayout.CENTER);
-        panel.add(southContainer, BorderLayout.SOUTH);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(lignesPanel, BorderLayout.WEST);
+        panel.add(echiquier, BorderLayout.CENTER);
+        panel.add(conteneur, BorderLayout.SOUTH);
         add(panel);
 
         redraw();
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // Accesseurs exposés au Contrôleur pour les effets locaux directs (étape 2)
-    // ══════════════════════════════════════════════════════════════════════════
-
-    /** Le Contrôleur y attache ses MouseListeners (étape 1). */
     public JPanel getCasePanel(int row, int col) { return casePanels[row][col]; }
 
-    /** Le Contrôleur lit l'icône pour créer la fenêtre fantôme de drag. */
     public JLabel getCaseLabel(int row, int col)  { return caseLabels[row][col]; }
 
     public JPanel getPanel() { return panel; }
 
-    /** Effet local direct — surlignage vert d'une case (étape 2). */
     public void setHighlight(int row, int col) {
         casePanels[row][col].setBackground(HIGHLIGHT);
         casePanels[row][col].revalidate();
         casePanels[row][col].repaint();
     }
 
-    /** Effet local direct — suppression du surlignage (étape 2). */
     public void clearHighlight(int row, int col) {
         casePanels[row][col].setBackground(((row + col) % 2 == 0) ? BEIGE : MARRON);
         casePanels[row][col].revalidate();
         casePanels[row][col].repaint();
     }
 
-    /** Effet local direct — couleur de survol (étape 2). */
-    public void setHover(int row, int col) {
-        casePanels[row][col].setBackground(Color.RED);
+    public void setFond(int ligne, int col) {
+        casePanels[ligne][col].setBackground(Color.RED);
     }
 
-    /** Effet local direct — restauration couleur normale (étape 2). */
-    public void clearHover(int row, int col) {
-        casePanels[row][col].setBackground(((row + col) % 2 == 0) ? BEIGE : MARRON);
+    public void clearFond(int ligne, int col) {
+        casePanels[ligne][col].setBackground(((ligne + col) % 2 == 0) ? BEIGE : MARRON);
     }
 
-    /** Effet local direct — bordure de sélection (étape 2). */
-    public void setCaseBorder(int row, int col, javax.swing.border.Border border) {
-        casePanels[row][col].setBorder(border);
+    public void setCaseBorder(int ligne, int col, javax.swing.border.Border border) {
+        casePanels[ligne][col].setBorder(border);
     }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // Observer — étapes 4 (notification) et 5 (consultation du Modèle)
-    // ══════════════════════════════════════════════════════════════════════════
 
     @Override
     public void update(Observable o, Object arg) {
+        final Joueur joueur = jeu.getJoueurCourant(); // capturé avant invokeLater (joueurCourant pas encore basculé)
         SwingUtilities.invokeLater(() -> {
-            redraw(); // étape 5 : consultation de jeu.getEchiquier()
+            redraw();
 
             if (arg instanceof Coup) {
                 Coup c = (Coup) arg;
                 String type = c.getType();
-                Joueur joueur = jeu.getJoueurCourant();
                 String next = (joueur != null && joueur.isBlanc()) ? "NOIRS" : "BLANCS";
                 switch (type == null ? "" : type) {
                     case "ECHEC":
-                        statusLabel.setForeground(new Color(180, 0, 0));
-                        statusLabel.setText("ÉCHEC ! — Tour : " + next); break;
+                        label.setForeground(new Color(180, 0, 0));
+                        label.setText("ÉCHEC ! — Tour : " + next); break;
                     case "ROQUE":
-                        statusLabel.setForeground(new Color(0, 100, 180));
-                        statusLabel.setText("ROQUE — Tour : " + next); break;
+                        label.setForeground(new Color(0, 100, 180));
+                        label.setText("ROQUE — Tour : " + next); break;
                     case "PRISE EN PASSANT":
-                        statusLabel.setForeground(new Color(0, 120, 0));
-                        statusLabel.setText("PRISE EN PASSANT — Tour : " + next); break;
+                        label.setForeground(new Color(0, 120, 0));
+                        label.setText("PRISE EN PASSANT — Tour : " + next); break;
                     case "PROMOTION":
-                        statusLabel.setForeground(new Color(120, 0, 120));
-                        statusLabel.setText("PROMOTION — Tour : " + next); break;
+                        label.setForeground(new Color(120, 0, 120));
+                        label.setText("PROMOTION — Tour : " + next); break;
                     default:
-                        statusLabel.setForeground(Color.BLACK);
-                        statusLabel.setText("Tour : " + next);
+                        label.setForeground(Color.BLACK);
+                        label.setText("Tour : " + next);
                 }
             } else if (arg instanceof String) {
-                // Fin de partie : mise à jour de la barre de statut uniquement.
-                // Le dialogue est géré par le Contrôleur (MF).
-                statusLabel.setForeground(Color.RED);
-                statusLabel.setText((String) arg);
+                label.setForeground(Color.RED);
+                label.setText((String) arg);
             } else {
-                // null → nouvelle partie / redraw simple
-                statusLabel.setForeground(Color.BLACK);
-                Joueur joueur = jeu.getJoueurCourant();
-                statusLabel.setText("Tour : " + (joueur != null && joueur.isBlanc() ? "BLANCS" : "NOIRS"));
+                label.setForeground(Color.BLACK);
+                label.setText("Tour : " + (joueur != null && joueur.isBlanc() ? "BLANCS" : "NOIRS"));
             }
         });
     }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // Rendu interne — étape 5 (la Vue consulte le Modèle)
-    // ══════════════════════════════════════════════════════════════════════════
 
     private void redraw() {
         int panelW = Math.max(1, panel.getWidth());
@@ -204,7 +163,7 @@ public class VC extends JFrame implements Observer {
                             if (getClass().getResource(candidate) != null) { resourcePath = candidate; break; }
                         }
                     }
-                    caseLabels[l][c].setIcon(createSafeIcon(piece, resourcePath, iconSize));
+                    caseLabels[l][c].setIcon(createIcon(piece, resourcePath, iconSize));
                     caseLabels[l][c].setText("");
                 } else {
                     caseLabels[l][c].setIcon(null);
@@ -216,7 +175,7 @@ public class VC extends JFrame implements Observer {
         panel.repaint();
     }
 
-    Icon createSafeIcon(Piece piece, String resourcePath, int size) {
+    Icon createIcon(Piece piece, String resourcePath, int size) {
         if (resourcePath != null) {
             try {
                 if (resourcePath.toLowerCase().endsWith(".svg")) {
@@ -235,7 +194,6 @@ public class VC extends JFrame implements Observer {
                 }
             } catch (Exception ignored) {}
         }
-        // Repli : lettre dans un cercle
         String initial = piece.getClass().getSimpleName().substring(0, 1).toUpperCase();
         BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = bi.createGraphics();
