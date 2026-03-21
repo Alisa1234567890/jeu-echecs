@@ -5,6 +5,8 @@ import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Observable;
 
 public class Jeu extends Observable implements Runnable {
@@ -18,6 +20,8 @@ public class Jeu extends Observable implements Runnable {
 
     private EchiquierModele echiquier;
     private Coup dernierCoup;
+    // Historique des positions pour détecter la répétition (clef = position de jeu)
+    private final Map<String, Integer> positionHistory = new HashMap<>();
     // true uniquement quand le jeu est bloqué dans attendreCoup()
     private volatile boolean attenteCoup = false;
 
@@ -34,6 +38,8 @@ public class Jeu extends Observable implements Runnable {
             }
         }
         new Thread(this, "Jeu-Thread").start();
+        // Enregistrer la position initiale
+        enregistrerPosition();
     }
 
     public EchiquierModele getEchiquier() {
@@ -76,7 +82,20 @@ public class Jeu extends Observable implements Runnable {
                 break;
             }
 
+            // Changer de joueur AVANT d'enregistrer la position :
+            // la clef doit refléter qui joue ensuite, pas qui vient de jouer.
             joueurCourant = joueurSuivant;
+
+            // Enregistrer la position et vérifier la répétition triple
+            enregistrerPosition();
+            if (estRepetitionTriple()) {
+                System.out.println("RÉSULTAT: NULLE PAR RÉPÉTITION!");
+                if (nextC != null) nextC.setType("RÉPÉTITION");
+                termine = true;
+                setChanged();
+                notifyObservers("NULLE - Répétition de position (3 fois)");
+                break;
+            }
         }
     }
 
@@ -279,5 +298,75 @@ public class Jeu extends Observable implements Runnable {
 
     public Joueur getJoueurCourant() {
         return joueurCourant;
+    }
+
+    /**
+     * Génère une clef unique représentant la position courante du jeu.
+     * La clef encode :
+     *  - les pièces présentes sur chaque case (type + couleur)
+     *  - le joueur qui doit jouer
+     *  - la case cible de la prise en passant (si elle existe)
+     *  - les droits de roque (présence roi/tours sur cases initiales)
+     */
+    public String genererClePosition() {
+        Plateau plateau = PlateauSingleton.INSTANCE;
+        StringBuilder sb = new StringBuilder(80);
+
+        // 1. Encodage du plateau (8×8)
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                org.model.plateau.Case cas = plateau.getCase(r, c);
+                if (cas == null || cas.getPiece() == null) {
+                    sb.append('.');
+                } else {
+                    sb.append(cas.getPiece().getImageName()); // e.g. "wK", "bP"
+                }
+                sb.append(',');
+            }
+        }
+
+        // 2. Joueur courant
+        sb.append(joueurCourant.isBlanc() ? 'W' : 'B');
+        sb.append(';');
+
+        // 3. Cible en passant
+        org.model.plateau.Case ep = plateau.getEnPassantTarget();
+        if (ep != null) {
+            sb.append(ep.getX()).append(':').append(ep.getY());
+        } else {
+            sb.append('-');
+        }
+        sb.append(';');
+
+        // 4. Droits de roque (roi et tours sur leur case initiale)
+        // Blanc
+        org.model.plateau.Case wKing = plateau.getCase(7, 4);
+        org.model.plateau.Case wRookK = plateau.getCase(7, 7);
+        org.model.plateau.Case wRookQ = plateau.getCase(7, 0);
+        sb.append((wKing  != null && wKing.getPiece()  instanceof org.model.piece.King  && wKing.getPiece().isBlanc())  ? 'K' : '-');
+        sb.append((wRookK != null && wRookK.getPiece() instanceof org.model.piece.Rook  && wRookK.getPiece().isBlanc()) ? 'R' : '-');
+        sb.append((wRookQ != null && wRookQ.getPiece() instanceof org.model.piece.Rook  && wRookQ.getPiece().isBlanc()) ? 'R' : '-');
+        // Noir
+        org.model.plateau.Case bKing = plateau.getCase(0, 4);
+        org.model.plateau.Case bRookK = plateau.getCase(0, 7);
+        org.model.plateau.Case bRookQ = plateau.getCase(0, 0);
+        sb.append((bKing  != null && bKing.getPiece()  instanceof org.model.piece.King  && !bKing.getPiece().isBlanc())  ? 'k' : '-');
+        sb.append((bRookK != null && bRookK.getPiece() instanceof org.model.piece.Rook  && !bRookK.getPiece().isBlanc()) ? 'r' : '-');
+        sb.append((bRookQ != null && bRookQ.getPiece() instanceof org.model.piece.Rook  && !bRookQ.getPiece().isBlanc()) ? 'r' : '-');
+
+        return sb.toString();
+    }
+
+    /** Enregistre la position courante dans l'historique. */
+    private void enregistrerPosition() {
+        String cle = genererClePosition();
+        positionHistory.merge(cle, 1, Integer::sum);
+        System.out.println("Position enregistrée (" + positionHistory.get(cle) + "x): " + cle.substring(0, Math.min(40, cle.length())) + "…");
+    }
+
+    /** Retourne true si la position courante s'est répétée 3 fois ou plus. */
+    public boolean estRepetitionTriple() {
+        String cle = genererClePosition();
+        return positionHistory.getOrDefault(cle, 0) >= 3;
     }
 }
