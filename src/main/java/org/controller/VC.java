@@ -4,7 +4,6 @@ import org.model.Coup;
 import org.model.Jeu;
 import org.model.JeuObserver;
 import org.model.piece.Piece;
-import org.model.plateau.Case;
 import org.tools.SvgToPngConverter;
 
 import javax.swing.BorderFactory;
@@ -40,12 +39,12 @@ public class VC extends JFrame implements JeuObserver {
     private final JLabel[][] caseLabels = new JLabel[8][8];
     private final List<Point> highlightedMoves = new ArrayList<>();
 
-    private JPanel panel;
+    private final JPanel panel;
     private Point depart;
     private JPanel draggingPanel;
     private JWindow dragWindow;
     private Point dragOffset;
-    private AWTEventListener globalMouseListener;
+    private final AWTEventListener globalMouseListener;
 
     private final Color beige = new Color(220, 234, 248);
     private final Color marron = new Color(88, 123, 168);
@@ -273,7 +272,7 @@ public class VC extends JFrame implements JeuObserver {
 
     private String getFallbackText(Piece piece) {
         String simpleName = piece.getClass().getSimpleName();
-        return (simpleName == null || simpleName.isEmpty()) ? "?" : simpleName.substring(0, 1).toUpperCase();
+        return (simpleName.isEmpty()) ? "?" : simpleName.substring(0, 1).toUpperCase();
     }
 
     private void handleGlobalMouseReleased(MouseEvent me) {

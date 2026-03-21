@@ -7,6 +7,7 @@ import org.model.JeuObserver;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -14,23 +15,22 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
-import javax.swing.JButton;
 import javax.swing.border.Border;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
-import java.awt.FlowLayout;
+import java.awt.event.WindowEvent;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.awt.event.WindowEvent;
 
 public class MF extends JFrame implements JeuObserver {
 
@@ -77,9 +77,9 @@ public class MF extends JFrame implements JeuObserver {
         confettiGlassPane = new ConfettiGlassPane();
         setGlassPane(confettiGlassPane);
 
-        announcementHideTimer = new Timer(2400, e -> hideAnnouncement());
+        announcementHideTimer = new Timer(2400, _ -> hideAnnouncement());
         announcementHideTimer.setRepeats(false);
-        uiRefreshTimer = new Timer(200, e -> {
+        uiRefreshTimer = new Timer(200, _ -> {
             if (jeu != null) {
                 jeu.tickClock();
                 refreshInfo();
@@ -114,7 +114,7 @@ public class MF extends JFrame implements JeuObserver {
         header.add(modeLabel);
         header.add(Box.createVerticalStrut(6));
 
-        statusLabel = new JLabel("Preparation de la partie");
+        statusLabel = new JLabel("Préparation de la partie");
         statusLabel.setAlignmentX(LEFT_ALIGNMENT);
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 15));
         statusLabel.setForeground(new Color(54, 74, 102));
@@ -122,25 +122,29 @@ public class MF extends JFrame implements JeuObserver {
         header.add(Box.createVerticalStrut(10));
 
         announcementLabel = new JLabel(" ", SwingConstants.CENTER);
-        announcementLabel.setOpaque(true);
-        announcementLabel.setVisible(false);
+        announcementLabel.setOpaque(false);
         announcementLabel.setAlignmentX(LEFT_ALIGNMENT);
+        announcementLabel.setPreferredSize(new Dimension(10, 38));
+        announcementLabel.setMinimumSize(new Dimension(10, 38));
         announcementLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         announcementLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
         announcementLabel.setForeground(ANNOUNCEMENT_TEXT);
         announcementLabel.setBackground(ANNOUNCEMENT_BG);
-        announcementLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(127, 187, 255), 1, true),
-                BorderFactory.createEmptyBorder(8, 14, 8, 14)
-        ));
-        header.add(announcementLabel);
+        announcementLabel.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
+
+        JPanel announcementSlot = new JPanel(new BorderLayout());
+        announcementSlot.setOpaque(false);
+        announcementSlot.setAlignmentX(LEFT_ALIGNMENT);
+        announcementSlot.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        announcementSlot.add(announcementLabel, BorderLayout.CENTER);
+        header.add(announcementSlot);
         header.add(Box.createVerticalStrut(10));
 
         JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         actionRow.setOpaque(false);
         resignButton = new JButton("Resign");
         resignButton.setFocusPainted(false);
-        resignButton.addActionListener(e -> confirmResignation());
+        resignButton.addActionListener(_ -> confirmResignation());
         actionRow.add(resignButton);
         header.add(actionRow);
 
@@ -181,9 +185,9 @@ public class MF extends JFrame implements JeuObserver {
 
     public void setJeu(Jeu jeu) {
         this.jeu = jeu;
-        this.endDialogShown = false;
-        this.lastWhiteCapturedScore = jeu.getCapturedScore(true);
-        this.lastBlackCapturedScore = jeu.getCapturedScore(false);
+        endDialogShown = false;
+        lastWhiteCapturedScore = jeu.getCapturedScore(true);
+        lastBlackCapturedScore = jeu.getCapturedScore(false);
         refreshInfo();
     }
 
@@ -226,6 +230,10 @@ public class MF extends JFrame implements JeuObserver {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         titleLabel.setForeground(new Color(34, 58, 99));
 
+        timeLabel.setAlignmentX(LEFT_ALIGNMENT);
+        timeLabel.setFont(new Font("Monospaced", Font.BOLD, 20));
+        timeLabel.setForeground(new Color(24, 69, 129));
+
         scoreLabel.setAlignmentX(LEFT_ALIGNMENT);
         scoreLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         scoreLabel.setForeground(PANEL_ACCENT);
@@ -233,10 +241,6 @@ public class MF extends JFrame implements JeuObserver {
         detailLabel.setAlignmentX(LEFT_ALIGNMENT);
         detailLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
         detailLabel.setForeground(new Color(73, 93, 122));
-
-        timeLabel.setAlignmentX(LEFT_ALIGNMENT);
-        timeLabel.setFont(new Font("Monospaced", Font.BOLD, 20));
-        timeLabel.setForeground(new Color(24, 69, 129));
 
         card.add(titleLabel);
         card.add(Box.createVerticalStrut(10));
@@ -260,17 +264,13 @@ public class MF extends JFrame implements JeuObserver {
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
         title.setForeground(new Color(34, 58, 99));
 
-        JLabel line1 = infoLabel("Score = captured material points.");
-        JLabel line2 = infoLabel("Special moves and captures trigger announcements.");
-        JLabel line3 = infoLabel("Game over lets you restart or change mode/level.");
-
         card.add(title);
         card.add(Box.createVerticalStrut(10));
-        card.add(line1);
+        card.add(infoLabel("Score = captured material points."));
         card.add(Box.createVerticalStrut(6));
-        card.add(line2);
+        card.add(infoLabel("Special moves and captures trigger announcements."));
         card.add(Box.createVerticalStrut(6));
-        card.add(line3);
+        card.add(infoLabel("Game over lets you restart or change mode/level."));
         return card;
     }
 
@@ -300,13 +300,7 @@ public class MF extends JFrame implements JeuObserver {
             return;
         }
 
-        if ("RESIGN".equals(arg)) {
-            showAnnouncement(jeu.getStatusMessage());
-            confettiGlassPane.burst();
-            return;
-        }
-
-        if ("TIMEOUT".equals(arg)) {
+        if ("RESIGN".equals(arg) || "TIMEOUT".equals(arg)) {
             showAnnouncement(jeu.getStatusMessage());
             confettiGlassPane.burst();
             return;
@@ -325,26 +319,22 @@ public class MF extends JFrame implements JeuObserver {
         String actor = determineActor(whiteDelta, blackDelta);
 
         List<String> fragments = new ArrayList<>();
-        boolean celebrate = false;
 
         if (whiteDelta > 0) {
             fragments.add("White +" + whiteDelta + " point" + (whiteDelta > 1 ? "s" : ""));
-            celebrate = true;
         }
         if (blackDelta > 0) {
             fragments.add("Black +" + blackDelta + " point" + (blackDelta > 1 ? "s" : ""));
-            celebrate = true;
         }
 
         String special = specialMessage(coup, actor);
         if (special != null) {
             fragments.add(special);
-            celebrate = true;
         }
 
         if (!fragments.isEmpty()) {
-            showAnnouncement(String.join("  •  ", fragments));
-            if (celebrate) {
+            showAnnouncement(String.join("  -  ", fragments));
+            if (jeu.partieTerminee()) {
                 confettiGlassPane.burst();
             }
         }
@@ -407,24 +397,29 @@ public class MF extends JFrame implements JeuObserver {
 
     private String formatLead(int delta) {
         if (delta > 0) {
-            return "  •  Lead +" + delta;
+            return "  -  Lead +" + delta;
         }
         if (delta < 0) {
-            return "  •  Lead " + delta;
+            return "  -  Lead " + delta;
         }
-        return "  •  Even";
+        return "  -  Even";
     }
 
     private void showAnnouncement(String message) {
         announcementLabel.setText(message);
-        announcementLabel.setVisible(true);
+        announcementLabel.setOpaque(true);
+        announcementLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(127, 187, 255), 1, true),
+                BorderFactory.createEmptyBorder(8, 14, 8, 14)
+        ));
         announcementHideTimer.restart();
     }
 
     private void hideAnnouncement() {
         announcementHideTimer.stop();
-        announcementLabel.setVisible(false);
         announcementLabel.setText(" ");
+        announcementLabel.setOpaque(false);
+        announcementLabel.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
     }
 
     private void showEndOfGameDialog() {
@@ -484,6 +479,13 @@ public class MF extends JFrame implements JeuObserver {
         return String.format("%02d:%02d", minutes, seconds);
     }
 
+    @Override
+    public void dispose() {
+        announcementHideTimer.stop();
+        uiRefreshTimer.stop();
+        super.dispose();
+    }
+
     private static final class ConfettiGlassPane extends JPanel {
         private final List<Particle> particles = new ArrayList<>();
         private final Timer timer;
@@ -499,7 +501,7 @@ public class MF extends JFrame implements JeuObserver {
         private ConfettiGlassPane() {
             setOpaque(false);
             setVisible(false);
-            timer = new Timer(16, e -> tick());
+            timer = new Timer(16, _ -> tick());
         }
 
         private void burst() {
@@ -584,12 +586,5 @@ public class MF extends JFrame implements JeuObserver {
                 this.spin = (Math.random() - 0.5) * 0.45;
             }
         }
-    }
-
-    @Override
-    public void dispose() {
-        announcementHideTimer.stop();
-        uiRefreshTimer.stop();
-        super.dispose();
     }
 }

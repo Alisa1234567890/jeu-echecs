@@ -13,12 +13,17 @@ import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +51,8 @@ public class Jeu implements Runnable {
     private long whiteRemainingMillis;
     private long blackRemainingMillis;
     private long lastClockUpdateMillis;
+    private int halfmoveClock;
+    private final Map<String, Integer> repetitionCounts = new HashMap<>();
 
     private boolean whiteKingMoved;
     private boolean blackKingMoved;
@@ -58,7 +65,6 @@ public class Jeu implements Runnable {
     private static final class MoveState {
         private final Coup coup;
         private final Piece movedPiece;
-        private final Piece pieceOnDestination;
         private final Piece capturedPiece;
         private final Point capturedSquare;
         private final Piece rookPiece;
@@ -76,7 +82,6 @@ public class Jeu implements Runnable {
         private MoveState(
                 Coup coup,
                 Piece movedPiece,
-                Piece pieceOnDestination,
                 Piece capturedPiece,
                 Point capturedSquare,
                 Piece rookPiece,
@@ -93,7 +98,6 @@ public class Jeu implements Runnable {
         ) {
             this.coup = coup;
             this.movedPiece = movedPiece;
-            this.pieceOnDestination = pieceOnDestination;
             this.capturedPiece = capturedPiece;
             this.capturedSquare = capturedSquare;
             this.rookPiece = rookPiece;
@@ -137,7 +141,6 @@ public class Jeu implements Runnable {
         while (!partieTerminee()) {
             Joueur joueurSuivant;
             synchronized (this) {
-                tickClock();
                 joueurSuivant = getJoueurSuivant();
             }
             if (joueurSuivant == null) {
@@ -265,68 +268,86 @@ public class Jeu implements Runnable {
         notifyAll();
     }
 
-    public synchronized boolean appliquerCoup(Coup coup) {
-        if (coup == null || termine || joueurCourant == null) {
-            return false;
-        }
-        tickClock();
-        if (!coupValide(coup)) {
-            return false;
-        }
-
-        Piece movingPiece = getPieceAt(coup.dep.x, coup.dep.y);
-        String promotionChoice = getPromotionChoice(movingPiece, coup.arr.x, joueurCourant);
-        Coup applied = copyOf(coup);
-        MoveState state = applyUnchecked(applied, promotionChoice);
-        if (state == null) {
-            return false;
+    public boolean appliquerCoup(Coup coup) {
+        Piece movingPiece;
+        Joueur currentPlayer;
+        synchronized (this) {
+            if (coup == null || termine || joueurCourant == null) {
+                return false;
+            }
+            if (!coupValide(coup)) {
+                return false;
+            }
+            movingPiece = getPieceAt(coup.dep.x, coup.dep.y);
+            currentPlayer = joueurCourant;
         }
 
-        dernierCoup = copyOf(applied);
-        moveHistory.add(copyOf(applied));
+        String promotionChoice = getPromotionChoice(movingPiece, coup.arr.x, currentPlayer);
 
-        Joueur previousPlayer = joueurCourant;
-        joueurCourant = opponentOf(previousPlayer);
+        synchronized (this) {
+            if (coup == null || termine || joueurCourant == null || joueurCourant != currentPlayer) {
+                return false;
+            }
+            if (!coupValide(coup)) {
+                return false;
+            }
 
-        boolean inCheck = isKingInCheck(joueurCourant.isBlanc());
-        List<Coup> replies = getLegalMoves(joueurCourant.isBlanc());
-        if (replies.isEmpty()) {
-            termine = true;
-            if (inCheck) {
-                winnerLabel = previousPlayer.isBlanc() ? "White" : "Black";
+            Coup applied = copyOf(coup);
+            MoveState state = applyUnchecked(applied, promotionChoice);
+            if (state == null) {
+                return false;
+            }
+
+            dernierCoup = copyOf(applied);
+            moveHistory.add(copyOf(applied));
+
+            Joueur previousPlayer = joueurCourant;
+            joueurCourant = opponentOf(previousPlayer);
+
+            boolean inCheck = isKingInCheck(joueurCourant.isBlanc());
+            List<Coup> replies = getLegalMoves(joueurCourant.isBlanc());
+            if (replies.isEmpty()) {
+                termine = true;
+                if (inCheck) {
+                    winnerLabel = previousPlayer.isBlanc() ? "Blanc" : "Noir";
+                    drawGame = false;
+                    applied.setType("ECHEC ET MAT");
+                    dernierCoup.setType("ECHEC ET MAT");
+                    moveHistory.get(moveHistory.size() - 1).setType("ECHEC ET MAT");
+                    statusMessage = "Échec et mat. Gagnant : " + winnerLabel + ".";
+                } else {
+                    winnerLabel = null;
+                    drawGame = true;
+                    applied.setType("PAT");
+                    dernierCoup.setType("PAT");
+                    moveHistory.get(moveHistory.size() - 1).setType("PAT");
+                    statusMessage = "Pat.";
+                }
+            } else if (inCheck) {
+                winnerLabel = null;
                 drawGame = false;
-                applied.setType("ECHEC ET MAT");
-                dernierCoup.setType("ECHEC ET MAT");
-                moveHistory.get(moveHistory.size() - 1).setType("ECHEC ET MAT");
-                statusMessage = "Checkmate. Winner: " + winnerLabel + ".";
+                if ("NORMAL".equals(applied.getType())) {
+                    applied.setType("ECHEC");
+                    dernierCoup.setType("ECHEC");
+                    moveHistory.get(moveHistory.size() - 1).setType("ECHEC");
+                }
+                statusMessage = (joueurCourant.isBlanc() ? "Blanc" : "Noir") + " est en échec.";
             } else {
                 winnerLabel = null;
-                drawGame = true;
-                applied.setType("PAT");
-                dernierCoup.setType("PAT");
-                moveHistory.get(moveHistory.size() - 1).setType("PAT");
-                statusMessage = "Stalemate.";
+                drawGame = false;
+                statusMessage = (joueurCourant.isBlanc() ? "Blanc" : "Noir") + " au trait.";
             }
-        } else if (inCheck) {
-            winnerLabel = null;
-            drawGame = false;
-            if ("NORMAL".equals(applied.getType())) {
-                applied.setType("ECHEC");
-                dernierCoup.setType("ECHEC");
-                moveHistory.get(moveHistory.size() - 1).setType("ECHEC");
-            }
-            statusMessage = (joueurCourant.isBlanc() ? "White" : "Black") + " is in check.";
-        } else {
-            winnerLabel = null;
-            drawGame = false;
-            statusMessage = (joueurCourant.isBlanc() ? "White" : "Black") + " to move.";
-        }
 
-        syncBoard();
-        lastClockUpdateMillis = System.currentTimeMillis();
-        notifyAll();
-        notifyGameObservers(applied);
-        return true;
+            if (!termine) {
+                updateDrawStateAfterMove(state);
+            }
+
+            syncBoard();
+            lastClockUpdateMillis = System.currentTimeMillis();
+            notifyAll();
+            notifyGameObservers(applied);
+            return true;
+        }
     }
 
     public synchronized boolean isLegalMove(Coup coup, Joueur joueur) {
@@ -465,8 +486,11 @@ public class Jeu implements Runnable {
         whiteRemainingMillis = INITIAL_TIME_MILLIS;
         blackRemainingMillis = INITIAL_TIME_MILLIS;
         lastClockUpdateMillis = System.currentTimeMillis();
-        statusMessage = "White to move.";
+        halfmoveClock = 0;
+        repetitionCounts.clear();
+        statusMessage = "Trait aux blancs.";
         syncBoard();
+        recordCurrentPosition();
         notifyAll();
         notifyGameObservers("Game reset.");
     }
@@ -546,6 +570,7 @@ public class Jeu implements Runnable {
                 handleTimeout(false);
             }
         }
+        notifyGameObservers("CLOCK_UPDATE");
     }
 
     public synchronized boolean isClockActive(boolean white) {
@@ -634,6 +659,68 @@ public class Jeu implements Runnable {
         lastClockUpdateMillis = System.currentTimeMillis();
         notifyAll();
         notifyGameObservers("RESIGN");
+    }
+
+    public synchronized boolean canAgreeDraw() {
+        return !termine && mode == GameMode.HUMAN_VS_HUMAN;
+    }
+
+    public synchronized void agreeDraw() {
+        if (!canAgreeDraw()) {
+            return;
+        }
+        termine = true;
+        drawGame = true;
+        winnerLabel = null;
+        statusMessage = "Draw by agreement.";
+        lastClockUpdateMillis = System.currentTimeMillis();
+        notifyAll();
+        notifyGameObservers("DRAW_AGREED");
+    }
+
+    public synchronized Coup chooseAiMove(boolean white, Difficulty difficulty) {
+        List<Coup> moves = getLegalMoves(white);
+        if (moves.isEmpty()) {
+            return null;
+        }
+        if (difficulty == Difficulty.EASY) {
+            return moves.get((int) (Math.random() * moves.size()));
+        }
+        int depth = difficulty == Difficulty.MEDIUM ? 2 : 4;
+        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, white)).reversed());
+
+        Coup bestMove = null;
+        int bestScore = white ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        int alpha = Integer.MIN_VALUE + 1;
+        int beta = Integer.MAX_VALUE - 1;
+
+        for (Coup move : moves) {
+            MoveState state = applyUnchecked(copyOf(move), "QUEEN");
+            if (state == null) {
+                continue;
+            }
+            int score = alphaBeta(depth - 1, alpha, beta, !white);
+            undo(state);
+
+            if (white) {
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+                alpha = Math.max(alpha, bestScore);
+            } else {
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+                beta = Math.min(beta, bestScore);
+            }
+            if (beta <= alpha) {
+                break;
+            }
+        }
+
+        return bestMove != null ? copyOf(bestMove) : moves.get(0);
     }
 
     private List<Point> getPseudoLegalDestinations(Piece piece, Point from) {
@@ -830,7 +917,10 @@ public class Jeu implements Runnable {
             while (inside(r, c)) {
                 Piece piece = getPieceAt(r, c);
                 if (piece != null) {
-                    return piece.isBlanc() == byWhite && (a.isInstance(piece) || b.isInstance(piece));
+                    if (piece.isBlanc() == byWhite && (a.isInstance(piece) || b.isInstance(piece))) {
+                        return true;
+                    }
+                    break;
                 }
                 r += direction[0];
                 c += direction[1];
@@ -917,7 +1007,6 @@ public class Jeu implements Runnable {
         return new MoveState(
                 copyOf(coup),
                 moved,
-                destinationPiece,
                 captured,
                 capturedSquare,
                 rookPiece,
@@ -1058,23 +1147,36 @@ public class Jeu implements Runnable {
         if (!(joueur instanceof JHumain) || GraphicsEnvironment.isHeadless()) {
             return "QUEEN";
         }
-        Object[] options = {"Queen", "Rook", "Bishop", "Knight"};
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Choose the promotion piece",
-                "Promotion",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-        return switch (choice) {
-            case 1 -> "ROOK";
-            case 2 -> "BISHOP";
-            case 3 -> "KNIGHT";
-            default -> "QUEEN";
+        AtomicReference<String> choiceRef = new AtomicReference<>("QUEEN");
+        Runnable chooser = () -> {
+            Object[] options = {"Queen", "Rook", "Bishop", "Knight"};
+            int choice = JOptionPane.showOptionDialog(
+                    null,
+                    "Choose the promotion piece",
+                    "Promotion",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+            choiceRef.set(switch (choice) {
+                case 1 -> "ROOK";
+                case 2 -> "BISHOP";
+                case 3 -> "KNIGHT";
+                default -> "QUEEN";
+            });
         };
+        try {
+            if (SwingUtilities.isEventDispatchThread()) {
+                chooser.run();
+            } else {
+                SwingUtilities.invokeAndWait(chooser);
+            }
+        } catch (Exception e) {
+            return "QUEEN";
+        }
+        return choiceRef.get();
     }
 
     private Coup parseCoordinateMove(String move) {
@@ -1139,6 +1241,246 @@ public class Jeu implements Runnable {
         }
         notifyAll();
         notifyGameObservers("TIMEOUT");
+    }
+
+    private void updateDrawStateAfterMove(MoveState state) {
+        if (state.movedPiece instanceof Pawn || state.capturedPiece != null) {
+            halfmoveClock = 0;
+        } else {
+            halfmoveClock++;
+        }
+
+        recordCurrentPosition();
+
+        if (isInsufficientMaterial()) {
+            termine = true;
+            drawGame = true;
+            winnerLabel = null;
+            statusMessage = "Draw: insufficient material.";
+            return;
+        }
+
+        if (halfmoveClock >= 100) {
+            termine = true;
+            drawGame = true;
+            winnerLabel = null;
+            statusMessage = "Draw: 50-move rule.";
+            return;
+        }
+
+        String key = buildPositionKey();
+        if (repetitionCounts.getOrDefault(key, 0) >= 3) {
+            termine = true;
+            drawGame = true;
+            winnerLabel = null;
+            statusMessage = "Draw: threefold repetition.";
+        }
+    }
+
+    private void recordCurrentPosition() {
+        String key = buildPositionKey();
+        repetitionCounts.put(key, repetitionCounts.getOrDefault(key, 0) + 1);
+    }
+
+    private String buildPositionKey() {
+        StringBuilder builder = new StringBuilder(96);
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = getPieceAt(row, col);
+                builder.append(pieceKey(piece));
+            }
+        }
+        builder.append('|').append(joueurCourant != null && joueurCourant.isBlanc() ? 'w' : 'b');
+        builder.append('|').append(whiteKingMoved ? '1' : '0')
+                .append(whiteQueenRookMoved ? '1' : '0')
+                .append(whiteKingRookMoved ? '1' : '0')
+                .append(blackKingMoved ? '1' : '0')
+                .append(blackQueenRookMoved ? '1' : '0')
+                .append(blackKingRookMoved ? '1' : '0');
+        builder.append('|');
+        if (enPassantTarget != null) {
+            builder.append(enPassantTarget.x).append(',').append(enPassantTarget.y);
+        } else {
+            builder.append('-');
+        }
+        return builder.toString();
+    }
+
+    private char pieceKey(Piece piece) {
+        if (piece == null) {
+            return '.';
+        }
+        char symbol;
+        if (piece instanceof Pawn) {
+            symbol = 'p';
+        } else if (piece instanceof Knight) {
+            symbol = 'n';
+        } else if (piece instanceof Bishop) {
+            symbol = 'b';
+        } else if (piece instanceof Rook) {
+            symbol = 'r';
+        } else if (piece instanceof Queen) {
+            symbol = 'q';
+        } else if (piece instanceof King) {
+            symbol = 'k';
+        } else {
+            symbol = '?';
+        }
+        return piece.isBlanc() ? Character.toUpperCase(symbol) : symbol;
+    }
+
+    private boolean isInsufficientMaterial() {
+        int whiteBishops = 0;
+        int whiteKnights = 0;
+        int blackBishops = 0;
+        int blackKnights = 0;
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = getPieceAt(row, col);
+                if (piece == null || piece instanceof King) {
+                    continue;
+                }
+                if (piece instanceof Pawn || piece instanceof Rook || piece instanceof Queen) {
+                    return false;
+                }
+                if (piece instanceof Bishop) {
+                    if (piece.isBlanc()) {
+                        whiteBishops++;
+                    } else {
+                        blackBishops++;
+                    }
+                } else if (piece instanceof Knight) {
+                    if (piece.isBlanc()) {
+                        whiteKnights++;
+                    } else {
+                        blackKnights++;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        int whiteMinors = whiteBishops + whiteKnights;
+        int blackMinors = blackBishops + blackKnights;
+        int totalMinors = whiteMinors + blackMinors;
+
+        if (totalMinors <= 1) {
+            return true;
+        }
+
+        if (totalMinors == 2) {
+            if (whiteBishops == 1 && whiteKnights == 1) {
+                return false;
+            }
+            if (blackBishops == 1 && blackKnights == 1) {
+                return false;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private int alphaBeta(int depth, int alpha, int beta, boolean sideToMoveWhite) {
+        if (depth <= 0) {
+            return evaluatePosition();
+        }
+
+        List<Coup> moves = getLegalMoves(sideToMoveWhite);
+        if (moves.isEmpty()) {
+            if (isKingInCheck(sideToMoveWhite)) {
+                return sideToMoveWhite ? -100000 + depth : 100000 - depth;
+            }
+            return 0;
+        }
+
+        if (isInsufficientMaterial()) {
+            return 0;
+        }
+
+        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, sideToMoveWhite)).reversed());
+
+        if (sideToMoveWhite) {
+            int value = Integer.MIN_VALUE;
+            for (Coup move : moves) {
+                MoveState state = applyUnchecked(copyOf(move), "QUEEN");
+                if (state == null) {
+                    continue;
+                }
+                value = Math.max(value, alphaBeta(depth - 1, alpha, beta, false));
+                undo(state);
+                alpha = Math.max(alpha, value);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+            return value;
+        }
+
+        int value = Integer.MAX_VALUE;
+        for (Coup move : moves) {
+            MoveState state = applyUnchecked(copyOf(move), "QUEEN");
+            if (state == null) {
+                continue;
+            }
+            value = Math.min(value, alphaBeta(depth - 1, alpha, beta, true));
+            undo(state);
+            beta = Math.min(beta, value);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        return value;
+    }
+
+    private int evaluatePosition() {
+        int score = 0;
+        int whiteMobility = getLegalMoves(true).size();
+        int blackMobility = getLegalMoves(false).size();
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = getPieceAt(row, col);
+                if (piece == null) {
+                    continue;
+                }
+                int value = pieceValue(piece) * 100;
+                int activity = pieceSquareBonus(piece, row, col);
+                score += piece.isBlanc() ? value + activity : -(value + activity);
+            }
+        }
+
+        score += (whiteMobility - blackMobility) * 4;
+        if (isKingInCheck(false)) {
+            score += 25;
+        }
+        if (isKingInCheck(true)) {
+            score -= 25;
+        }
+        return score;
+    }
+
+    private int pieceSquareBonus(Piece piece, int row, int col) {
+        int centerDistance = Math.abs(3 - row) + Math.abs(3 - col);
+        if (piece instanceof Pawn) {
+            int advancement = piece.isBlanc() ? (6 - row) : (row - 1);
+            return advancement * 8 - centerDistance;
+        }
+        if (piece instanceof Knight || piece instanceof Bishop) {
+            return 12 - centerDistance * 3;
+        }
+        if (piece instanceof Rook) {
+            return 6 - Math.abs(3 - col);
+        }
+        if (piece instanceof Queen) {
+            return 8 - centerDistance * 2;
+        }
+        if (piece instanceof King) {
+            return -centerDistance;
+        }
+        return 0;
     }
 
     private boolean hasSufficientMatingMaterial(boolean white) {
