@@ -1,8 +1,11 @@
 package org.controller;
 
+import org.editor.PngChessEditor;
 import org.model.Coup;
 import org.model.Jeu;
 import org.model.JeuObserver;
+import org.tools.NetworkConnectorDemoFrame;
+import org.view.Simple3DView;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -10,6 +13,9 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
@@ -95,6 +101,21 @@ public class MF extends JFrame implements JeuObserver {
         root.setBackground(WINDOW_BG);
         root.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         setContentPane(root);
+
+        // Create menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu toolsMenu = new JMenu("Outils");
+        JMenuItem pngEditorItem = new JMenuItem("Éditeur PNG d'Échecs");
+        JMenuItem vue3DItem = new JMenuItem("Ouvrir la vue 3D");
+        JMenuItem reseauItem = new JMenuItem("Test connecteur réseau");
+        pngEditorItem.addActionListener(e -> launchPngEditor());
+        vue3DItem.addActionListener(e -> launch3DView());
+        reseauItem.addActionListener(e -> launchNetworkConnectorDemo());
+        toolsMenu.add(pngEditorItem);
+        toolsMenu.add(vue3DItem);
+        toolsMenu.add(reseauItem);
+        menuBar.add(toolsMenu);
+        setJMenuBar(menuBar);
 
         JPanel header = new JPanel();
         header.setOpaque(false);
@@ -370,7 +391,9 @@ public class MF extends JFrame implements JeuObserver {
             return;
         }
 
-        modeLabel.setText(jeu.getModeLabel());
+        modeLabel.setText(jeu.getMode() == Jeu.GameMode.HUMAN_VS_AI
+                ? jeu.getModeLabel() + " • " + jeu.getAiStyleDescription()
+                : jeu.getModeLabel());
         statusLabel.setText(jeu.getStatusMessage());
 
         int whiteScore = jeu.getCapturedScore(true);
@@ -484,6 +507,26 @@ public class MF extends JFrame implements JeuObserver {
         announcementHideTimer.stop();
         uiRefreshTimer.stop();
         super.dispose();
+    }
+
+    private void launchPngEditor() {
+        PngChessEditor editor = new PngChessEditor();
+        editor.setVisible(true);
+    }
+
+    private void launch3DView() {
+        if (jeu == null) {
+            JOptionPane.showMessageDialog(this, "La partie n'est pas initialisée.", "Information", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        Simple3DView vue3D = new Simple3DView(jeu);
+        jeu.addObserver(vue3D);
+        vue3D.setVisible(true);
+    }
+
+    private void launchNetworkConnectorDemo() {
+        NetworkConnectorDemoFrame frame = new NetworkConnectorDemoFrame();
+        frame.setVisible(true);
     }
 
     private static final class ConfettiGlassPane extends JPanel {

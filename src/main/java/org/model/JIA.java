@@ -14,7 +14,7 @@ public class JIA extends Joueur {
     }
 
     public JIA(Jeu jeu, boolean blanc, Jeu.Difficulty difficulty) {
-        this(jeu, blanc, blanc ? "White AI" : "Black AI", difficulty);
+        this(jeu, blanc, blanc ? "IA Blanche" : "IA Noire", difficulty);
     }
 
     @Override

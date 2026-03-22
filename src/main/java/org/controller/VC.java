@@ -5,6 +5,7 @@ import org.model.Jeu;
 import org.model.JeuObserver;
 import org.model.piece.Piece;
 import org.tools.SvgToPngConverter;
+import org.util.BoardTheme;
 
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
@@ -45,9 +46,6 @@ public class VC extends JFrame implements JeuObserver {
     private JWindow dragWindow;
     private Point dragOffset;
     private final AWTEventListener globalMouseListener;
-
-    private final Color beige = new Color(220, 234, 248);
-    private final Color marron = new Color(88, 123, 168);
 
     public VC(Jeu jeu) {
         this.jeu = jeu;
@@ -117,7 +115,7 @@ public class VC extends JFrame implements JeuObserver {
                     @Override
                     public void mouseEntered(MouseEvent e) {
                         if (!isHighlighted(ligne, colonne)) {
-                            casePanel.setBackground(new Color(162, 207, 255));
+                            casePanel.setBackground(BoardTheme.hoverSquare());
                         }
                     }
 
@@ -218,7 +216,7 @@ public class VC extends JFrame implements JeuObserver {
         if (isHighlighted(row, col)) {
             return jeu.getEchiquier().getCouleurSurvol();
         }
-        return ((row + col) % 2 == 0) ? beige : marron;
+        return jeu.getEchiquier().getCouleurCase(row, col);
     }
 
     private String resolvePieceResource(Piece piece) {

@@ -11,6 +11,7 @@ import org.model.plateau.Case;
 import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
+import org.util.ImageGenerator;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -30,6 +31,23 @@ import java.util.regex.Pattern;
 public class Jeu implements Runnable {
     public enum GameMode { HUMAN_VS_HUMAN, HUMAN_VS_AI }
     public enum Difficulty { EASY, MEDIUM, HARD }
+    public enum AIStyle {
+        EQUILIBRE("Équilibré"),
+        AGRESSIF("Agressif"),
+        POSITIONNEL("Positionnel"),
+        PRUDENT("Prudent");
+
+        private final String label;
+
+        AIStyle(String label) {
+            this.label = label;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+    }
+
     private static final int TOTAL_NON_KING_MATERIAL = 39;
     private static final long INITIAL_TIME_MILLIS = 10L * 60L * 1000L;
 
@@ -38,6 +56,7 @@ public class Jeu implements Runnable {
     private final Joueur joueur2;
     private final GameMode mode;
     private final Difficulty difficulty;
+    private final AIStyle aiStyle;
     private final List<JeuObserver> observers = new CopyOnWriteArrayList<>();
     private final List<Coup> moveHistory = new ArrayList<>();
 
@@ -115,12 +134,17 @@ public class Jeu implements Runnable {
     }
 
     public Jeu() {
-        this(GameMode.HUMAN_VS_HUMAN, Difficulty.EASY);
+        this(GameMode.HUMAN_VS_HUMAN, Difficulty.EASY, AIStyle.EQUILIBRE);
     }
 
     public Jeu(GameMode mode, Difficulty difficulty) {
+        this(mode, difficulty, AIStyle.EQUILIBRE);
+    }
+
+    public Jeu(GameMode mode, Difficulty difficulty, AIStyle aiStyle) {
         this.mode = mode;
         this.difficulty = difficulty;
+        this.aiStyle = aiStyle == null ? AIStyle.EQUILIBRE : aiStyle;
         this.echiquier = new EchiquierModele();
         this.joueur1 = new JHumain(this, true, "White");
         this.joueur2 = mode == GameMode.HUMAN_VS_AI
@@ -195,6 +219,23 @@ public class Jeu implements Runnable {
         return difficulty;
     }
 
+    public AIStyle getAiStyle() {
+        return aiStyle;
+    }
+
+    public String getAiStyleLabel() {
+        return aiStyle.getLabel();
+    }
+
+    public String getAiStyleDescription() {
+        return switch (aiStyle) {
+            case AGRESSIF -> "cherche les initiatives, les menaces et les prises";
+            case POSITIONNEL -> "privilégie le centre, l'activité des pièces et la structure";
+            case PRUDENT -> "sécurise le roi et évite les cases dangereuses";
+            case EQUILIBRE -> "mélange pression tactique et stabilité";
+        };
+    }
+
     public synchronized String getStatusMessage() {
         return statusMessage;
     }
@@ -213,8 +254,16 @@ public class Jeu implements Runnable {
 
     public String getModeLabel() {
         return mode == GameMode.HUMAN_VS_AI
-                ? "Mode: IA (" + difficulty.name() + ")"
-                : "Mode: 2 joueurs";
+                ? "Mode : IA - " + difficultyLabel() + " - style " + aiStyle.getLabel()
+                : "Mode : 2 joueurs";
+    }
+
+    private String difficultyLabel() {
+        return switch (difficulty) {
+            case EASY -> "Facile";
+            case MEDIUM -> "Moyen";
+            case HARD -> "Difficile";
+        };
     }
 
     public synchronized boolean estTourHumain() {
@@ -298,6 +347,13 @@ public class Jeu implements Runnable {
                 return false;
             }
 
+            // Final guardrail: a move is never accepted if it leaves own king in check.
+            // This protects against edge cases that might slip through pre-validation.
+            if (isKingInCheck(currentPlayer.isBlanc())) {
+                undo(state);
+                return false;
+            }
+
             dernierCoup = copyOf(applied);
             moveHistory.add(copyOf(applied));
 
@@ -346,6 +402,14 @@ public class Jeu implements Runnable {
             lastClockUpdateMillis = System.currentTimeMillis();
             notifyAll();
             notifyGameObservers(applied);
+            
+            // Generate PNG image after each move
+            try {
+                sauvegardePng();
+            } catch (Exception e) {
+                System.err.println("Erreur lors de la génération de l'image PNG: " + e.getMessage());
+            }
+            
             return true;
         }
     }
@@ -578,6 +642,10 @@ public class Jeu implements Runnable {
     }
 
     public synchronized int scoreMove(Coup coup, boolean blanc) {
+        return scoreMove(coup, blanc, aiStyle);
+    }
+
+    private int scoreMove(Coup coup, boolean blanc, AIStyle style) {
         if (!isLegalMove(coup, blanc)) {
             return Integer.MIN_VALUE;
         }
@@ -590,12 +658,20 @@ public class Jeu implements Runnable {
         if (state.capturedPiece != null && target == null) {
             score += pieceValue(state.capturedPiece);
         }
+        score += styleCaptureBias(style, target == null ? state.capturedPiece : target);
         if (isKingInCheck(!blanc)) {
-            score += 2;
+            score += styleCheckBonus(style);
         }
-        score += 3 - (Math.abs(3 - coup.arr.x) + Math.abs(3 - coup.arr.y));
+        score += styleCenterBonus(style, coup.arr.x, coup.arr.y);
+        score += styleDevelopmentBonus(style, state.movedPiece, coup);
+        if ("ROQUE".equals(state.coup.getType())) {
+            score += styleCastlingBonus(style);
+        }
+        if ("PROMOTION".equals(state.coup.getType())) {
+            score += 7;
+        }
         if (isSquareAttacked(coup.arr.x, coup.arr.y, !blanc)) {
-            score -= Math.max(1, pieceValue(getPieceAt(coup.arr.x, coup.arr.y)) / 2);
+            score -= styleRiskPenalty(style, getPieceAt(coup.arr.x, coup.arr.y));
         }
         undo(state);
         return score;
@@ -687,7 +763,7 @@ public class Jeu implements Runnable {
             return moves.get((int) (Math.random() * moves.size()));
         }
         int depth = difficulty == Difficulty.MEDIUM ? 2 : 4;
-        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, white)).reversed());
+        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, white, aiStyle)).reversed());
 
         Coup bestMove = null;
         int bestScore = white ? Integer.MIN_VALUE : Integer.MAX_VALUE;
@@ -699,7 +775,7 @@ public class Jeu implements Runnable {
             if (state == null) {
                 continue;
             }
-            int score = alphaBeta(depth - 1, alpha, beta, !white);
+            int score = alphaBeta(depth - 1, alpha, beta, !white, aiStyle);
             undo(state);
 
             if (white) {
@@ -1383,9 +1459,9 @@ public class Jeu implements Runnable {
         return false;
     }
 
-    private int alphaBeta(int depth, int alpha, int beta, boolean sideToMoveWhite) {
+    private int alphaBeta(int depth, int alpha, int beta, boolean sideToMoveWhite, AIStyle style) {
         if (depth <= 0) {
-            return evaluatePosition();
+            return evaluatePosition(style);
         }
 
         List<Coup> moves = getLegalMoves(sideToMoveWhite);
@@ -1400,7 +1476,7 @@ public class Jeu implements Runnable {
             return 0;
         }
 
-        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, sideToMoveWhite)).reversed());
+        moves.sort(Comparator.comparingInt((Coup coup) -> scoreMove(coup, sideToMoveWhite, style)).reversed());
 
         if (sideToMoveWhite) {
             int value = Integer.MIN_VALUE;
@@ -1409,7 +1485,7 @@ public class Jeu implements Runnable {
                 if (state == null) {
                     continue;
                 }
-                value = Math.max(value, alphaBeta(depth - 1, alpha, beta, false));
+                value = Math.max(value, alphaBeta(depth - 1, alpha, beta, false, style));
                 undo(state);
                 alpha = Math.max(alpha, value);
                 if (alpha >= beta) {
@@ -1425,7 +1501,7 @@ public class Jeu implements Runnable {
             if (state == null) {
                 continue;
             }
-            value = Math.min(value, alphaBeta(depth - 1, alpha, beta, true));
+            value = Math.min(value, alphaBeta(depth - 1, alpha, beta, true, style));
             undo(state);
             beta = Math.min(beta, value);
             if (beta <= alpha) {
@@ -1435,7 +1511,7 @@ public class Jeu implements Runnable {
         return value;
     }
 
-    private int evaluatePosition() {
+    private int evaluatePosition(AIStyle style) {
         int score = 0;
         int whiteMobility = getLegalMoves(true).size();
         int blackMobility = getLegalMoves(false).size();
@@ -1452,14 +1528,123 @@ public class Jeu implements Runnable {
             }
         }
 
-        score += (whiteMobility - blackMobility) * 4;
+        score += (whiteMobility - blackMobility) * mobilityWeight(style);
+        score += (kingShieldScore(true) - kingShieldScore(false)) * kingSafetyWeight(style);
         if (isKingInCheck(false)) {
-            score += 25;
+            score += styleCheckPressure(style);
         }
         if (isKingInCheck(true)) {
-            score -= 25;
+            score -= styleCheckPressure(style);
         }
         return score;
+    }
+
+    private int styleCaptureBias(AIStyle style, Piece capturedPiece) {
+        if (capturedPiece == null) {
+            return 0;
+        }
+        int value = pieceValue(capturedPiece);
+        return switch (style) {
+            case AGRESSIF -> value * 2;
+            case POSITIONNEL -> value;
+            case PRUDENT -> Math.max(1, value - 1);
+            case EQUILIBRE -> value + 1;
+        };
+    }
+
+    private int styleCheckBonus(AIStyle style) {
+        return switch (style) {
+            case AGRESSIF -> 6;
+            case POSITIONNEL -> 3;
+            case PRUDENT -> 2;
+            case EQUILIBRE -> 4;
+        };
+    }
+
+    private int styleCenterBonus(AIStyle style, int row, int col) {
+        int distance = Math.abs(3 - row) + Math.abs(3 - col);
+        int base = 3 - distance;
+        return switch (style) {
+            case AGRESSIF -> base * 2;
+            case POSITIONNEL -> base * 3;
+            case PRUDENT -> base;
+            case EQUILIBRE -> base * 2;
+        };
+    }
+
+    private int styleDevelopmentBonus(AIStyle style, Piece movedPiece, Coup coup) {
+        int advancement = movedPiece instanceof Pawn
+                ? (movedPiece.isBlanc() ? (coup.dep.x - coup.arr.x) : (coup.arr.x - coup.dep.x))
+                : 0;
+        return switch (style) {
+            case AGRESSIF -> advancement * 2;
+            case POSITIONNEL -> movedPiece instanceof Knight || movedPiece instanceof Bishop ? 2 : advancement;
+            case PRUDENT -> movedPiece instanceof King ? -2 : advancement;
+            case EQUILIBRE -> advancement;
+        };
+    }
+
+    private int styleCastlingBonus(AIStyle style) {
+        return switch (style) {
+            case PRUDENT -> 8;
+            case POSITIONNEL -> 5;
+            case EQUILIBRE -> 4;
+            case AGRESSIF -> 2;
+        };
+    }
+
+    private int styleRiskPenalty(AIStyle style, Piece movedPiece) {
+        int base = Math.max(1, pieceValue(movedPiece) / 2);
+        return switch (style) {
+            case PRUDENT -> base * 3;
+            case POSITIONNEL -> base * 2;
+            case EQUILIBRE -> base * 2;
+            case AGRESSIF -> base;
+        };
+    }
+
+    private int mobilityWeight(AIStyle style) {
+        return switch (style) {
+            case AGRESSIF -> 6;
+            case POSITIONNEL -> 5;
+            case PRUDENT -> 3;
+            case EQUILIBRE -> 4;
+        };
+    }
+
+    private int kingSafetyWeight(AIStyle style) {
+        return switch (style) {
+            case PRUDENT -> 12;
+            case POSITIONNEL -> 7;
+            case EQUILIBRE -> 5;
+            case AGRESSIF -> 2;
+        };
+    }
+
+    private int styleCheckPressure(AIStyle style) {
+        return switch (style) {
+            case AGRESSIF -> 35;
+            case POSITIONNEL -> 24;
+            case PRUDENT -> 18;
+            case EQUILIBRE -> 25;
+        };
+    }
+
+    private int kingShieldScore(boolean white) {
+        Point king = findKing(white);
+        if (king == null) {
+            return 0;
+        }
+        int shield = 0;
+        for (int row = king.x - 1; row <= king.x + 1; row++) {
+            for (int col = king.y - 1; col <= king.y + 1; col++) {
+                Piece piece = getPieceAt(row, col);
+                if (piece instanceof Pawn && piece.isBlanc() == white) {
+                    shield++;
+                }
+            }
+        }
+        return shield;
     }
 
     private int pieceSquareBonus(Piece piece, int row, int col) {
@@ -1548,4 +1733,20 @@ public class Jeu implements Runnable {
             observer.update(arg);
         }
     }
+
+    /**
+     * Generate a PNG image of the current board state and save it as partie_echecs.png
+     */
+    public synchronized void sauvegardePng() {
+        try {
+            String dir = System.getProperty("user.dir", System.getProperty("user.home"));
+            String path = dir + java.io.File.separator + "partie_echecs.png";
+            java.awt.image.BufferedImage img = org.util.ImageGenerator.renderBoard(PlateauSingleton.INSTANCE);
+            org.util.ImageGenerator.saveAsPng(img, path);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de la sauvegarde PNG: " + e.getMessage());
+        }
+    }
+
+
 }

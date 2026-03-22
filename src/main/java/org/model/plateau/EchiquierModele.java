@@ -2,6 +2,7 @@ package org.model.plateau;
 
 import org.model.piece.*;
 import org.model.Joueur;
+import org.util.BoardTheme;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -10,10 +11,6 @@ import java.util.List;
 public class EchiquierModele {
 
     private Piece[][] board;
-
-    private final Color couleurClair = new Color(220, 234, 248);
-    private final Color couleurFonce = new Color(88, 123, 168);
-    private final Color couleurSurvol = new Color(133, 194, 255);
 
     public EchiquierModele() {
         board = new Piece[8][8];
@@ -73,11 +70,11 @@ public class EchiquierModele {
     }
 
     public Color getCouleurCase(int ligne, int colonne) {
-        return (ligne + colonne) % 2 == 0 ? couleurClair : couleurFonce;
+        return BoardTheme.squareAt(ligne, colonne);
     }
 
     public Color getCouleurSurvol() {
-        return couleurSurvol;
+        return BoardTheme.hoverSquare();
     }
 
 
