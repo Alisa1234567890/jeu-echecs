@@ -54,4 +54,8 @@ public abstract class DecorateurCasesAccessibles {
         }
         return res;
     }
+
+    protected ArrayList<Case> collectRay(int startX, int startY, Direction dir, Piece piece) {
+        return collectRay(startX, startY, dir.dx, dir.dy, piece);
+    }
 }

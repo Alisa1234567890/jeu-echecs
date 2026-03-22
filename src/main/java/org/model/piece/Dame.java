@@ -1,6 +1,7 @@
 package org.model.piece;
 
 import org.model.plateau.Case;
+import org.model.plateau.Direction;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 import org.model.plateau.DecorateurCasesEnLigne;
@@ -22,10 +23,9 @@ public class Dame extends Piece {
         int y = position.getY();
         Plateau plateau = findPlateau();
         if (plateau == null) return res;
-        int[][] dirs = { {1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1} };
-        for (int[] d : dirs) {
-            int nx = x + d[0];
-            int ny = y + d[1];
+        for (Direction d : Direction.glissement()) {
+            int nx = x + d.dx;
+            int ny = y + d.dy;
             while (true) {
                 Case c = plateau.getCase(nx, ny);
                 if (c == null) break;
@@ -35,8 +35,8 @@ public class Dame extends Piece {
                     if (c.getPiece().isBlanc() != this.blanc) res.add(c);
                     break;
                 }
-                nx += d[0];
-                ny += d[1];
+                nx += d.dx;
+                ny += d.dy;
             }
         }
         return res;

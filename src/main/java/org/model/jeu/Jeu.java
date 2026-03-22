@@ -20,7 +20,6 @@ public class Jeu extends Observable implements Runnable {
     private Joueur joueur2;
     private Joueur joueurCourant;
     private boolean termine = false;
-
     private EchiquierModele echiquier;
     private Coup dernierCoup;
     private final Map<String, Integer> positionHistory = new HashMap<>();
@@ -369,7 +368,7 @@ public class Jeu extends Observable implements Runnable {
                 if (other == null || other == piece) continue;
                 if (other.getClass() != piece.getClass()) continue;
                 if (other.isBlanc() != piece.isBlanc()) continue;
-                // Est-ce que cette pièce peut atteindre `arr` ?
+                // Est-ce que cette pièce peut atteindre
                 for (org.model.plateau.Case accessible : other.getCaseAccessible()) {
                     if (accessible != null
                             && accessible.getX() == arr.x

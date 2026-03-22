@@ -1,6 +1,7 @@
 package org.model.piece;
 
 import org.model.plateau.Case;
+import org.model.plateau.Direction;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
@@ -22,39 +23,39 @@ public class Pion extends Piece {
         Plateau plateau = PlateauSingleton.INSTANCE;
 
 
-        int dir = isBlanc() ? -1 : 1;
+        // Direction d'avancement selon la couleur
+        Direction moveDir    = isBlanc() ? Direction.HAUT    : Direction.BAS;
+        Direction diagGauche = isBlanc() ? Direction.HAUT_GAUCHE : Direction.BAS_GAUCHE;
+        Direction diagDroite = isBlanc() ? Direction.HAUT_DROITE : Direction.BAS_DROITE;
 
-
-        Case devant = plateau.getCase(x + dir, y);
+        // Avancer d'une case
+        Case devant = plateau.getCase(x + moveDir.dx, y + moveDir.dy);
         if (devant != null && devant.isEmpty()) {
             res.add(devant);
 
             boolean estAuDepart = (isBlanc() && x == 6) || (!isBlanc() && x == 1);
             if (estAuDepart) {
-                Case devant2 = plateau.getCase(x + (2 * dir), y);
+                Case devant2 = plateau.getCase(x + (2 * moveDir.dx), y + (2 * moveDir.dy));
                 if (devant2 != null && devant2.isEmpty()) {
                     res.add(devant2);
                 }
             }
         }
 
-
-        // Diagonal
-        int[] colonnesDiagonales = {y - 1, y + 1};
-        for (int c : colonnesDiagonales) {
-            Case diag = plateau.getCase(x + dir, c);
-            if (diag != null && !diag.isEmpty() && diag.getPiece().isBlanc() != this.isBlanc()) {
-                res.add(diag);
+        // Captures en diagonale
+        for (Direction diag : new Direction[]{diagGauche, diagDroite}) {
+            Case c = plateau.getCase(x + diag.dx, y + diag.dy);
+            if (c != null && !c.isEmpty() && c.getPiece().isBlanc() != this.isBlanc()) {
+                res.add(c);
             }
         }
-
 
         // En passant
         Case epTarget = plateau.getEnPassantTarget();
         if (epTarget != null) {
             int epX = epTarget.getX();
             int epY = epTarget.getY();
-            if (epX == x + dir && (epY == y - 1 || epY == y + 1)) {
+            if (epX == x + moveDir.dx && (epY == y - 1 || epY == y + 1)) {
                 if (!res.contains(epTarget)) {
                     res.add(epTarget);
                 }

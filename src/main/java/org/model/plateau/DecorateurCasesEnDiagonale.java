@@ -10,20 +10,16 @@ public class DecorateurCasesEnDiagonale extends DecorateurCasesAccessibles {
         super(plateau);
     }
 
-    public DecorateurCasesEnDiagonale(Plateau plateau, DecorateurCasesAccessibles base) {
-        super(plateau, base);
-    }
-
     @Override
     protected ArrayList<Case> getMesCasesAccessibles(Piece piece) {
         ArrayList<Case> res = new ArrayList<>();
         if (piece.getCase() == null) return res;
         int x = piece.getCase().getX();
         int y = piece.getCase().getY();
-        res.addAll(collectRay(x, y, 1, 1, piece));
-        res.addAll(collectRay(x, y, 1, -1, piece));
-        res.addAll(collectRay(x, y, -1, 1, piece));
-        res.addAll(collectRay(x, y, -1, -1, piece));
+        res.addAll(collectRay(x, y, Direction.HAUT_DROITE,  piece));
+        res.addAll(collectRay(x, y, Direction.HAUT_GAUCHE,  piece));
+        res.addAll(collectRay(x, y, Direction.BAS_DROITE,   piece));
+        res.addAll(collectRay(x, y, Direction.BAS_GAUCHE,   piece));
         return res;
     }
 }

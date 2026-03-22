@@ -20,10 +20,10 @@ public class DecorateurCasesEnLigne extends DecorateurCasesAccessibles {
         if (piece.getCase() == null) return res;
         int x = piece.getCase().getX();
         int y = piece.getCase().getY();
-        res.addAll(collectRay(x, y, 1, 0, piece));
-        res.addAll(collectRay(x, y, -1, 0, piece));
-        res.addAll(collectRay(x, y, 0, 1, piece));
-        res.addAll(collectRay(x, y, 0, -1, piece));
+        res.addAll(collectRay(x, y, Direction.HAUT,   piece));
+        res.addAll(collectRay(x, y, Direction.BAS,    piece));
+        res.addAll(collectRay(x, y, Direction.GAUCHE, piece));
+        res.addAll(collectRay(x, y, Direction.DROITE, piece));
         return res;
     }
 }

@@ -1,6 +1,7 @@
 package org.model.piece;
 
 import org.model.plateau.Case;
+import org.model.plateau.Direction;
 import org.model.plateau.Plateau;
 import org.model.plateau.PlateauSingleton;
 
@@ -21,18 +22,10 @@ public class Cavalier extends Piece {
         int y = position.getY();
         Plateau plateau = PlateauSingleton.INSTANCE;
 
-
-        int[][] sauts = {
-                {-2, -1}, {-2, 1}, {2, -1}, {2, 1},
-                {-1, -2}, {-1, 2}, {1, -2}, {1, 2}
-        };
-
-        for (int[] s : sauts) {
-            Case c = plateau.getCase(x + s[0], y + s[1]);
-            if (c != null) {
-                if (c.isEmpty() || c.getPiece().isBlanc() != this.isBlanc()) {
-                    res.add(c);
-                }
+        for (Direction d : Direction.sauts()) {
+            Case c = plateau.getCase(x + d.dx, y + d.dy);
+            if (c != null && (c.isEmpty() || c.getPiece().isBlanc() != this.isBlanc())) {
+                res.add(c);
             }
         }
         return res;
