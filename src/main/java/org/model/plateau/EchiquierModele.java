@@ -11,42 +11,50 @@ import java.util.Observable;
 public class EchiquierModele extends Observable {
 
     private Piece[][] board;
+    private final Plateau plateau;
 
     private final Color couleurClair = new Color(240, 217, 181);
     private final Color couleurFonce = new Color(181, 136, 99);
     private final Color couleurSurvol = Color.YELLOW;
 
-    public EchiquierModele() {
+    public EchiquierModele(Plateau plateau) {
+        this.plateau = plateau;
         board = new Piece[8][8];
         initialiserPieces();
     }
 
     private void initialiserPieces() {
-
-        board[0][0] = new Tour("black");
-        board[0][1] = new Cavalier("black");
-        board[0][2] = new Fou("black");
-        board[0][3] = new Dame("black");
-        board[0][4] = new Roi("black");
-        board[0][5] = new Fou("black");
-        board[0][6] = new Cavalier("black");
-        board[0][7] = new Tour("black");
-
+        // Pièces noires
+        board[0][0] = new Tour("black", plateau);
+        board[0][1] = new Cavalier("black", plateau);
+        board[0][2] = new Fou("black", plateau);
+        board[0][3] = new Dame("black", plateau);
+        board[0][4] = new Roi("black", plateau);
+        board[0][5] = new Fou("black", plateau);
+        board[0][6] = new Cavalier("black", plateau);
+        board[0][7] = new Tour("black", plateau);
         for (int col = 0; col < 8; col++) {
-            board[1][col] = new Pion("black");
+            board[1][col] = new Pion("black", plateau);
         }
 
-        board[7][0] = new Tour("white");
-        board[7][1] = new Cavalier("white");
-        board[7][2] = new Fou("white");
-        board[7][3] = new Dame("white");
-        board[7][4] = new Roi("white");
-        board[7][5] = new Fou("white");
-        board[7][6] = new Cavalier("white");
-        board[7][7] = new Tour("white");
-
+        // Pièces blanches
+        board[7][0] = new Tour("white", plateau);
+        board[7][1] = new Cavalier("white", plateau);
+        board[7][2] = new Fou("white", plateau);
+        board[7][3] = new Dame("white", plateau);
+        board[7][4] = new Roi("white", plateau);
+        board[7][5] = new Fou("white", plateau);
+        board[7][6] = new Cavalier("white", plateau);
+        board[7][7] = new Tour("white", plateau);
         for (int col = 0; col < 8; col++) {
-            board[6][col] = new Pion("white");
+            board[6][col] = new Pion("white", plateau);
+        }
+
+        // Synchroniser board → plateau
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                plateau.getCase(r, c).setPiece(board[r][c]);
+            }
         }
 
         setChanged();
@@ -91,7 +99,6 @@ public class EchiquierModele extends Observable {
         return null;
     }
 
-
     public List<Piece> getPiecesAdverses(Joueur joueur) {
         List<Piece> piecesAdverses = new ArrayList<>();
         for (int row = 0; row < board.length; row++) {
@@ -104,7 +111,6 @@ public class EchiquierModele extends Observable {
         }
         return piecesAdverses;
     }
-
 
     public List<Piece> getPieces(Joueur joueur) {
         List<Piece> pieces = new ArrayList<>();

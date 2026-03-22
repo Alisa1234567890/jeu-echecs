@@ -5,7 +5,6 @@ import java.awt.Point;
 
 import org.model.piece.Piece;
 import org.model.plateau.Plateau;
-import org.model.plateau.PlateauSingleton;
 
 public abstract class Joueur {
 
@@ -57,7 +56,7 @@ public abstract class Joueur {
 
 
     private boolean estCoupLegal(Point from, Point to) {
-        Plateau plateau = PlateauSingleton.INSTANCE;
+        Plateau plateau = jeu.getPlateau();
 
 
         Piece pieceAtFrom = plateau.getCase(from).getPiece();

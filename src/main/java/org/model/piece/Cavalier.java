@@ -1,12 +1,12 @@
 package org.model.piece;
 
 import org.model.plateau.DecorateurCasesCavalier;
-import org.model.plateau.PlateauSingleton;
+import org.model.plateau.Plateau;
 
 public class Cavalier extends Piece {
 
-    public Cavalier(String color) {
-        super(color, new DecorateurCasesCavalier(PlateauSingleton.INSTANCE));
+    public Cavalier(String color, Plateau plateau) {
+        super(color, new DecorateurCasesCavalier(plateau));
     }
 
     @Override

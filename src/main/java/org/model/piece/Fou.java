@@ -1,12 +1,12 @@
 package org.model.piece;
 
 import org.model.plateau.DecorateurCasesEnDiagonale;
-import org.model.plateau.PlateauSingleton;
+import org.model.plateau.Plateau;
 
 public class Fou extends Piece {
 
-    public Fou(String color) {
-        super(color, new DecorateurCasesEnDiagonale(PlateauSingleton.INSTANCE));
+    public Fou(String color, Plateau plateau) {
+        super(color, new DecorateurCasesEnDiagonale(plateau));
     }
 
     @Override

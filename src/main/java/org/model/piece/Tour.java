@@ -1,12 +1,12 @@
 package org.model.piece;
 
 import org.model.plateau.DecorateurCasesEnLigne;
-import org.model.plateau.PlateauSingleton;
+import org.model.plateau.Plateau;
 
 public class Tour extends Piece {
 
-    public Tour(String color) {
-        super(color, new DecorateurCasesEnLigne(PlateauSingleton.INSTANCE));
+    public Tour(String color, Plateau plateau) {
+        super(color, new DecorateurCasesEnLigne(plateau));
     }
 
     @Override

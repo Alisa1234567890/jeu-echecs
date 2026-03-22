@@ -3,7 +3,6 @@ package org.model.jeu;
 import org.model.piece.*;
 import org.model.plateau.EchiquierModele;
 import org.model.plateau.Plateau;
-import org.model.plateau.PlateauSingleton;
 import org.tools.ImageGenerator;
 
 import java.util.ArrayList;
@@ -16,6 +15,8 @@ public class Jeu extends Observable implements Runnable {
 
     public Coup nextC;
 
+    private final Plateau plateau = new Plateau();
+
     private Joueur joueur1;
     private Joueur joueur2;
     private Joueur joueurCourant;
@@ -27,26 +28,23 @@ public class Jeu extends Observable implements Runnable {
     private volatile boolean attenteCoup = false;
 
     public Jeu() {
-        echiquier = new EchiquierModele();
+        echiquier = new EchiquierModele(plateau); // EchiquierModele crée les pièces et synchro le plateau
         joueur1 = new JHumain(this, true);
         joueur2 = new JHumain(this, false);
         joueurCourant = joueur1;
-        Plateau p = PlateauSingleton.INSTANCE;
-        for (int r = 0; r < 8; r++) {
-            for (int c = 0; c < 8; c++) {
-                Piece piece = echiquier.getPiece(r, c);
-                p.getCase(r, c).setPiece(piece);
-            }
-        }
         gameThread = new Thread(this, "Jeu-Thread");
         gameThread.start();
 
         enregistrerPosition();
-        sauvegardePng(); // image initiale
+        sauvegardePng();
     }
 
     public EchiquierModele getEchiquier() {
         return echiquier;
+    }
+
+    public Plateau getPlateau() {
+        return plateau;
     }
 
     @Override
@@ -138,7 +136,7 @@ public class Jeu extends Observable implements Runnable {
             nextC = c;
             System.out.println("Attempting move: " + c.dep + " -> " + c.arr);
 
-            Plateau plateau = PlateauSingleton.INSTANCE;
+            Plateau plateau = this.plateau;
             Piece piece = plateau.getCase(c.dep).getPiece();
             Piece originalPiece = piece;
 
@@ -225,7 +223,7 @@ public class Jeu extends Observable implements Runnable {
             if (piece instanceof Pion) {
                 int endRow = c.arr.x;
                 if ((piece.isBlanc() && endRow == 0) || (!piece.isBlanc() && endRow == 7)) {
-                    Piece newQueen = new Dame(piece.getColor());
+                    Piece newQueen = new Dame(piece.getColor(), plateau);
                     plateau.getCase(c.arr).setPiece(newQueen);
                     c.setType("PROMOTION");
                     c.setPromotionTo("Q");
@@ -322,14 +320,11 @@ public class Jeu extends Observable implements Runnable {
         }
 
         synchronized (this) {
-            echiquier = new EchiquierModele();
-            Plateau p = PlateauSingleton.INSTANCE;
-            for (int r = 0; r < 8; r++) {
-                for (int c = 0; c < 8; c++) {
-                    p.getCase(r, c).setPiece(echiquier.getPiece(r, c));
-                }
-            }
-            p.setEnPassantTarget(null);
+            plateau.setEnPassantTarget(null);
+            for (int r = 0; r < 8; r++)
+                for (int c = 0; c < 8; c++)
+                    plateau.getCase(r, c).setPiece(null);
+            echiquier = new EchiquierModele(plateau);
 
             joueur1 = new JHumain(this, true);
             joueur2 = new JHumain(this, false);
@@ -354,7 +349,7 @@ public class Jeu extends Observable implements Runnable {
     public void sauvegardePng() {
         String dir  = System.getProperty("user.dir", System.getProperty("user.home"));
         String path = dir + java.io.File.separator + "partie_echecs.png";
-        java.awt.image.BufferedImage img = ImageGenerator.renderBoard(PlateauSingleton.INSTANCE);
+        java.awt.image.BufferedImage img = ImageGenerator.renderBoard(plateau);
         ImageGenerator.saveAsPng(img, path);
     }
 
@@ -406,7 +401,7 @@ public class Jeu extends Observable implements Runnable {
     }
 
     public String genererClePosition() {
-        Plateau plateau = PlateauSingleton.INSTANCE;
+        Plateau plateau = this.plateau;
         StringBuilder sb = new StringBuilder(80);
 
         for (int r = 0; r < 8; r++) {
